@@ -1,0 +1,31 @@
+<div class="app-shell">
+  <!-- Top Navbar -->
+  <header class="app-navbar">
+    <button class="nav-toggle" (click)="toggleSidebar()">&#9776;</button>
+    <span class="nav-brand">ngx-core-components</span>
+    <span class="nav-badge">Angular 19</span>
+    <span class="nav-subtitle">UI Component Library</span>
+  </header>
+
+  <div class="app-body">
+    <!-- Sidebar Navigation -->
+    <nav class="app-sidebar" [class.collapsed]="!sidebarOpen">
+      @for (group of navGroups; track group.title) {
+        <div class="nav-group">
+          <div class="nav-group-title">{{ group.title }}</div>
+          @for (item of group.items; track item.path) {
+            <a class="nav-item" [routerLink]="item.path" routerLinkActive="active">
+              <span class="nav-icon">{{ item.icon }}</span>
+              <span class="nav-label">{{ item.label }}</span>
+            </a>
+          }
+        </div>
+      }
+    </nav>
+
+    <!-- Main Content -->
+    <main class="app-content">
+      <router-outlet />
+    </main>
+  </div>
+</div>
