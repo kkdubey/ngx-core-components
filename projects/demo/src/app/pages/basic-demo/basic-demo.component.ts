@@ -19,6 +19,10 @@ import { getSampleTasks, getSampleDependencies } from '../../data/sample-tasks';
       <div class="demo-header">
         <h2 class="demo-title">Basic Gantt Chart</h2>
         <p class="demo-desc">A standard Gantt chart with tasks, dependencies, milestones, and zoom controls.</p>
+        <ul class="demo-features">
+          <li><strong>Multiple tasks per row:</strong> tasks with the same <code>rowId</code> (e.g. Backend API &amp; Database Schema) share a row — colored chips appear in the sidebar. Hover the name cell to see all tasks.</li>
+          <li><strong>Rich hover tooltip:</strong> hover any task bar to see its start/end, progress, and custom fields like assignee and priority.</li>
+        </ul>
         <div class="demo-toolbar">
           <div class="btn-group">
             <button
@@ -62,7 +66,9 @@ import { getSampleTasks, getSampleDependencies } from '../../data/sample-tasks';
     .demo-page { display: flex; flex-direction: column; height: 100%; padding: 16px; gap: 12px; }
     .demo-header { flex-shrink: 0; }
     .demo-title { margin: 0; font-size: 18px; font-weight: 700; color: #212529; }
-    .demo-desc { margin: 4px 0 12px; font-size: 13px; color: #6c757d; }
+    .demo-desc { margin: 4px 0 8px; font-size: 13px; color: #6c757d; }
+    .demo-features { margin: 0 0 12px; padding-left: 20px; font-size: 13px; color: #6c757d; line-height: 1.6; }
+    .demo-features li { margin-bottom: 2px; }
     .demo-toolbar { display: flex; gap: 8px; align-items: center; }
     .btn-group { display: inline-flex; border-radius: 4px; overflow: hidden; border: 1px solid #ced4da; }
     .k-btn {
@@ -89,7 +95,7 @@ export class BasicDemoComponent {
 
   config: Partial<GanttConfig> = {
     zoomLevel: ZoomLevel.Day,
-    rowHeight: 36,
+    rowHeight: 44,
     columnWidth: 36,
     headerHeight: 56,
     sidebarWidth: 350,
