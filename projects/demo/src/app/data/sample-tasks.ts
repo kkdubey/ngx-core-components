@@ -15,22 +15,22 @@ export function getSampleTasks(): GanttTask[] {
   return [
     // Phase 1: Planning
     { id: 'phase-1', name: 'Planning Phase', ...d(-5, 10), progress: 100, parentId: null, collapsed: false, isMilestone: false },
-    { id: 'task-1', name: 'Requirements Gathering', ...d(-5, 4), progress: 100, parentId: 'phase-1', collapsed: false, isMilestone: false },
-    { id: 'task-2', name: 'Technical Design', ...d(-1, 4), progress: 80, parentId: 'phase-1', collapsed: false, isMilestone: false },
+    { id: 'task-1', name: 'Requirements Gathering', ...d(-5, 4), progress: 100, parentId: 'phase-1', collapsed: false, isMilestone: false, meta: { assignee: 'Alice', priority: 'High' } },
+    { id: 'task-2', name: 'Technical Design', ...d(-1, 4), progress: 80, parentId: 'phase-1', collapsed: false, isMilestone: false, meta: { assignee: 'Bob', priority: 'High' } },
     { id: 'milestone-1', name: 'Design Approval', ...d(4, 0), progress: 0, parentId: 'phase-1', collapsed: false, isMilestone: true },
 
     // Phase 2: Development — task-3 & task-5 share a row (backend + DB run in parallel)
     { id: 'phase-2', name: 'Development Phase', ...d(5, 20), progress: 35, parentId: null, collapsed: false, isMilestone: false },
-    { id: 'task-3', name: 'Backend API', ...d(5, 8), progress: 60, parentId: 'phase-2', collapsed: false, isMilestone: false, color: '#27ae60', rowId: 'dev-row-1' },
-    { id: 'task-5', name: 'Database Schema', ...d(8, 5), progress: 90, parentId: 'phase-2', collapsed: false, isMilestone: false, color: '#e67e22', rowId: 'dev-row-1' },
-    { id: 'task-4', name: 'Frontend UI', ...d(8, 10), progress: 30, parentId: 'phase-2', collapsed: false, isMilestone: false, color: '#8e44ad' },
-    { id: 'task-6', name: 'Authentication Module', ...d(10, 6), progress: 10, parentId: 'phase-2', collapsed: false, isMilestone: false },
+    { id: 'task-3', name: 'Backend API', ...d(5, 8), progress: 60, parentId: 'phase-2', collapsed: false, isMilestone: false, color: '#27ae60', rowId: 'dev-row-1', meta: { assignee: 'Charlie', priority: 'Critical' } },
+    { id: 'task-5', name: 'Database Schema', ...d(8, 5), progress: 90, parentId: 'phase-2', collapsed: false, isMilestone: false, color: '#e67e22', rowId: 'dev-row-1', meta: { assignee: 'Diana', priority: 'High' } },
+    { id: 'task-4', name: 'Frontend UI', ...d(8, 10), progress: 30, parentId: 'phase-2', collapsed: false, isMilestone: false, color: '#8e44ad', meta: { assignee: 'Eve', priority: 'Medium' } },
+    { id: 'task-6', name: 'Authentication Module', ...d(10, 6), progress: 10, parentId: 'phase-2', collapsed: false, isMilestone: false, meta: { assignee: 'Frank', priority: 'Critical' } },
 
     // Phase 3: Testing — task-7 & task-8 share a row (unit + integration run together)
     { id: 'phase-3', name: 'Testing Phase', ...d(20, 10), progress: 0, parentId: null, collapsed: false, isMilestone: false },
-    { id: 'task-7', name: 'Unit Tests', ...d(20, 5), progress: 0, parentId: 'phase-3', collapsed: false, isMilestone: false, rowId: 'test-row-1' },
-    { id: 'task-8', name: 'Integration Tests', ...d(23, 5), progress: 0, parentId: 'phase-3', collapsed: false, isMilestone: false, color: '#2980b9', rowId: 'test-row-1' },
-    { id: 'task-9', name: 'UAT', ...d(26, 4), progress: 0, parentId: 'phase-3', collapsed: false, isMilestone: false },
+    { id: 'task-7', name: 'Unit Tests', ...d(20, 5), progress: 0, parentId: 'phase-3', collapsed: false, isMilestone: false, rowId: 'test-row-1', meta: { assignee: 'Grace', priority: 'High' } },
+    { id: 'task-8', name: 'Integration Tests', ...d(23, 5), progress: 0, parentId: 'phase-3', collapsed: false, isMilestone: false, color: '#2980b9', rowId: 'test-row-1', meta: { assignee: 'Hank', priority: 'High' } },
+    { id: 'task-9', name: 'UAT', ...d(26, 4), progress: 0, parentId: 'phase-3', collapsed: false, isMilestone: false, meta: { assignee: 'Ivy', priority: 'Medium' } },
     { id: 'milestone-2', name: 'Go Live', ...d(30, 0), progress: 0, parentId: null, collapsed: false, isMilestone: true },
   ];
 }

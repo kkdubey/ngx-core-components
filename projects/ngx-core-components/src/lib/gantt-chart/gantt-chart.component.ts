@@ -88,7 +88,11 @@ import { Rect, computeDependencyPath } from './utils/svg-utils';
                   (mouseleave)="hoveredTaskId.set(null)"
                   (click)="onRowClick(row.task, $event)"
                 >
-                  <td class="k-treelist-cell k-name-cell">
+                  <td class="k-treelist-cell k-name-cell"
+                    (mouseenter)="row.extraTasks.length > 0 ? showRowTooltip(row, $event) : null"
+                    (mousemove)="row.extraTasks.length > 0 ? updateRowTooltip($event) : null"
+                    (mouseleave)="row.extraTasks.length > 0 ? hideRowTooltip() : null"
+                  >
                     <span class="k-indent" [style.width.px]="row.depth * 20"></span>
                     @if (row.hasChildren && mergedConfig().collapsible) {
                       <button
@@ -104,13 +108,32 @@ import { Rect, computeDependencyPath } from './utils/svg-utils';
                     @if (row.task.isMilestone) {
                       <span class="k-milestone-icon">&#9670;</span>
                     }
-                    <span class="k-task-name" [class.k-summary-name]="row.hasChildren" [title]="row.task.name">
-                      {{ row.task.name }}
-                    </span>
+                    <div class="k-name-wrapper">
+                      <span class="k-task-name" [class.k-summary-name]="row.hasChildren" [title]="row.task.name">
+                        {{ row.task.name }}
+                      </span>
+                      @if (row.extraTasks.length > 0) {
+                        <div class="k-extra-tasks-chips">
+                          @for (extra of row.extraTasks; track extra.id) {
+                            <span
+                              class="k-extra-task-chip"
+                              [style.background]="extra.color || '#6c757d'"
+                              [title]="extra.name"
+                            >{{ extra.name.length > 14 ? extra.name.slice(0, 14) + '…' : extra.name }}</span>
+                          }
+                        </div>
+                      }
+                    </div>
                   </td>
-                  <td class="k-treelist-cell k-date-cell">{{ formatDateShort(row.task.start) }}</td>
-                  <td class="k-treelist-cell k-date-cell">{{ formatDateShort(row.task.end) }}</td>
-                  <td class="k-treelist-cell k-pct-cell">{{ row.task.progress }}%</td>
+                  <td class="k-treelist-cell k-date-cell">{{ formatDateShort(getRowStart(row)) }}</td>
+                  <td class="k-treelist-cell k-date-cell">{{ formatDateShort(getRowEnd(row)) }}</td>
+                  <td class="k-treelist-cell k-pct-cell">
+                    @if (row.extraTasks.length > 0) {
+                      <span class="k-multi-pct" [title]="getRowProgressTitle(row)">~{{ getRowAvgProgress(row) }}%</span>
+                    } @else {
+                      {{ row.task.progress }}%
+                    }
+                  </td>
                 </tr>
               }
             </tbody>
@@ -326,6 +349,31 @@ import { Rect, computeDependencyPath } from './utils/svg-utils';
           <span class="k-bar-tooltip-label">Progress</span>
           <span class="k-bar-tooltip-value">{{ tooltipTask()!.progress }}%</span>
         </div>
+        @for (entry of getMetaEntries(tooltipTask()!.meta); track entry.key) {
+          <div class="k-bar-tooltip-row">
+            <span class="k-bar-tooltip-label">{{ entry.key }}</span>
+            <span class="k-bar-tooltip-value">{{ entry.value }}</span>
+          </div>
+        }
+      </div>
+    }
+
+    <!-- ===== ROW TOOLTIP (multi-task rows) ===== -->
+    @if (rowTooltipData()) {
+      <div
+        class="k-bar-tooltip k-row-tooltip"
+        [style.left.px]="rowTooltipX()"
+        [style.top.px]="rowTooltipY()"
+      >
+        <div class="k-bar-tooltip-title">Tasks in this row</div>
+        @for (t of rowTooltipData()!.allTasks; track t.id) {
+          <div class="k-row-tooltip-task">
+            <span class="k-row-tooltip-dot" [style.background]="t.color || '#4a90d9'"></span>
+            <span class="k-row-tooltip-name">{{ t.name }}</span>
+            <span class="k-bar-tooltip-label">{{ formatDateShort(t.start) }}–{{ formatDateShort(t.end) }}</span>
+            <span class="k-bar-tooltip-value">{{ t.progress }}%</span>
+          </div>
+        }
       </div>
     }
   `,
@@ -432,6 +480,42 @@ import { Rect, computeDependencyPath } from './utils/svg-utils';
     .k-indent {
       display: inline-block;
       flex-shrink: 0;
+    }
+
+    .k-name-wrapper {
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+      justify-content: center;
+      gap: 2px;
+      overflow: hidden;
+    }
+
+    .k-extra-tasks-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 3px;
+    }
+
+    .k-extra-task-chip {
+      display: inline-flex;
+      align-items: center;
+      padding: 0 5px;
+      height: 14px;
+      border-radius: 7px;
+      font-size: 10px;
+      color: #fff;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 110px;
+      opacity: 0.9;
+      font-weight: 500;
+      letter-spacing: 0.01em;
+    }
+
+    .k-multi-pct {
+      cursor: help;
     }
     .k-collapse-btn {
       display: inline-flex;
@@ -818,6 +902,10 @@ import { Rect, computeDependencyPath } from './utils/svg-utils';
     }
 
     /* ===== TASK TOOLTIP ===== */
+    @keyframes k-tooltip-fadein {
+      from { opacity: 0; transform: translateY(4px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
     .k-bar-tooltip {
       position: fixed;
       z-index: 9999;
@@ -830,6 +918,7 @@ import { Rect, computeDependencyPath } from './utils/svg-utils';
       pointer-events: none;
       font-size: 12px;
       line-height: 1.5;
+      animation: k-tooltip-fadein 0.15s ease;
     }
     .k-bar-tooltip-title {
       font-weight: 700;
@@ -852,6 +941,35 @@ import { Rect, computeDependencyPath } from './utils/svg-utils';
     }
     .k-bar-tooltip-value {
       font-weight: 500;
+      white-space: nowrap;
+    }
+
+    /* Row tooltip (multi-task) */
+    .k-row-tooltip {
+      min-width: 240px;
+    }
+    .k-row-tooltip-task {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 5px;
+      padding-top: 5px;
+      border-top: 1px solid rgba(255,255,255,0.12);
+    }
+    .k-row-tooltip-task:first-of-type {
+      border-top: none;
+    }
+    .k-row-tooltip-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .k-row-tooltip-name {
+      flex: 1;
+      font-weight: 500;
+      overflow: hidden;
+      text-overflow: ellipsis;
       white-space: nowrap;
     }
   `]
@@ -891,6 +1009,11 @@ export class GanttChartComponent {
   tooltipTask = signal<GanttTask | null>(null);
   tooltipX = signal(0);
   tooltipY = signal(0);
+
+  // Row tooltip state (for sidebar multi-task rows)
+  rowTooltipData = signal<{ allTasks: GanttTask[] } | null>(null);
+  rowTooltipX = signal(0);
+  rowTooltipY = signal(0);
 
   // Merged config
   mergedConfig = computed<GanttConfig>(() => {
@@ -1273,6 +1396,67 @@ export class GanttChartComponent {
 
   hideTooltip(): void {
     this.tooltipTask.set(null);
+  }
+
+  // Multi-task row helpers
+  getRowStart(row: FlatRow): Date {
+    if (row.extraTasks.length === 0) return row.task.start;
+    const times = [row.task.start, ...row.extraTasks.map(t => t.start)].map(d => d.getTime());
+    return new Date(Math.min(...times));
+  }
+
+  getRowEnd(row: FlatRow): Date {
+    if (row.extraTasks.length === 0) return row.task.end;
+    const times = [row.task.end, ...row.extraTasks.map(t => t.end)].map(d => d.getTime());
+    return new Date(Math.max(...times));
+  }
+
+  getRowAvgProgress(row: FlatRow): number {
+    const all = [row.task, ...row.extraTasks];
+    return Math.round(all.reduce((sum, t) => sum + t.progress, 0) / all.length);
+  }
+
+  getRowProgressTitle(row: FlatRow): string {
+    const all = [row.task, ...row.extraTasks];
+    return all.map(t => `${t.name}: ${t.progress}%`).join(', ');
+  }
+
+  getMetaEntries(meta: Record<string, unknown> | undefined): { key: string; value: string }[] {
+    if (!meta) return [];
+    return Object.entries(meta).map(([key, value]) => ({
+      // Convert camelCase keys like "assignee" → "Assignee", "apiURL" → "Api URL"
+      key: key
+        .replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2')
+        .replace(/([a-z])([A-Z])/g, '$1 $2')
+        .replace(/^./, c => c.toUpperCase()),
+      value: String(value),
+    }));
+  }
+
+  showRowTooltip(row: FlatRow, event: MouseEvent): void {
+    const allTasks = [row.task, ...row.extraTasks];
+    this.rowTooltipData.set({ allTasks });
+    this.positionRowTooltip(event);
+  }
+
+  updateRowTooltip(event: MouseEvent): void {
+    if (this.rowTooltipData()) {
+      this.positionRowTooltip(event);
+    }
+  }
+
+  hideRowTooltip(): void {
+    this.rowTooltipData.set(null);
+  }
+
+  private positionRowTooltip(event: MouseEvent): void {
+    const OFFSET = 14;
+    const TOOLTIP_W = 260;
+    const TOOLTIP_H = 120;
+    const flipCoord = (cursor: number, size: number, viewport: number): number =>
+      cursor + OFFSET + size > viewport ? cursor - size - OFFSET : cursor + OFFSET;
+    this.rowTooltipX.set(flipCoord(event.clientX, TOOLTIP_W, window.innerWidth));
+    this.rowTooltipY.set(flipCoord(event.clientY, TOOLTIP_H, window.innerHeight));
   }
 
   private getPrimaryLabel(date: Date, zoom: ZoomLevel, locale: string): string {
