@@ -218,6 +218,8 @@ import { Rect, computeDependencyPath } from './utils/svg-utils';
                       [style.left.px]="bar.left - 8"
                       [class.k-focused]="keyboardService.focusedTaskId() === bar.task.id"
                       [class.k-selected]="selectedTaskId() === bar.task.id"
+                      (mouseenter)="hoveredTaskId.set(bar.primaryTaskId); showTooltip(bar.task, $event)"
+                      (mouseleave)="hoveredTaskId.set(null); hideTooltip()"
                       (click)="onTaskBarClick(bar.task, $event)"
                       (dblclick)="onTaskBarDblClick(bar.task, $event)"
                       tabindex="0"
@@ -233,6 +235,8 @@ import { Rect, computeDependencyPath } from './utils/svg-utils';
                       [style.width.px]="bar.width"
                       [class.k-focused]="keyboardService.focusedTaskId() === bar.task.id"
                       [class.k-selected]="selectedTaskId() === bar.task.id"
+                      (mouseenter)="hoveredTaskId.set(bar.primaryTaskId); showTooltip(bar.task, $event)"
+                      (mouseleave)="hoveredTaskId.set(null); hideTooltip()"
                       (click)="onTaskBarClick(bar.task, $event)"
                       (dblclick)="onTaskBarDblClick(bar.task, $event)"
                       tabindex="0"
@@ -253,6 +257,8 @@ import { Rect, computeDependencyPath } from './utils/svg-utils';
                       [style.background]="bar.task.color || null"
                       [class.k-focused]="keyboardService.focusedTaskId() === bar.task.id"
                       [class.k-selected]="selectedTaskId() === bar.task.id"
+                      (mouseenter)="hoveredTaskId.set(bar.primaryTaskId); showTooltip(bar.task, $event)"
+                      (mouseleave)="hoveredTaskId.set(null); hideTooltip()"
                       (pointerdown)="onBarPointerDown($event, bar.task, 'move')"
                       (click)="onTaskBarClick(bar.task, $event)"
                       (dblclick)="onTaskBarDblClick(bar.task, $event)"
@@ -299,6 +305,29 @@ import { Rect, computeDependencyPath } from './utils/svg-utils';
         </div>
       </div>
     </div>
+
+    <!-- ===== TASK TOOLTIP ===== -->
+    @if (tooltipTask()) {
+      <div
+        class="k-bar-tooltip"
+        [style.left.px]="tooltipX()"
+        [style.top.px]="tooltipY()"
+      >
+        <div class="k-bar-tooltip-title">{{ tooltipTask()!.name }}</div>
+        <div class="k-bar-tooltip-row">
+          <span class="k-bar-tooltip-label">Start</span>
+          <span class="k-bar-tooltip-value">{{ formatDateFull(tooltipTask()!.start) }}</span>
+        </div>
+        <div class="k-bar-tooltip-row">
+          <span class="k-bar-tooltip-label">End</span>
+          <span class="k-bar-tooltip-value">{{ formatDateFull(tooltipTask()!.end) }}</span>
+        </div>
+        <div class="k-bar-tooltip-row">
+          <span class="k-bar-tooltip-label">Progress</span>
+          <span class="k-bar-tooltip-value">{{ tooltipTask()!.progress }}%</span>
+        </div>
+      </div>
+    }
   `,
   styles: [`
     /* ===== ROOT ===== */
@@ -787,6 +816,44 @@ import { Rect, computeDependencyPath } from './utils/svg-utils';
     .k-dep-line:hover {
       stroke-width: 3;
     }
+
+    /* ===== TASK TOOLTIP ===== */
+    .k-bar-tooltip {
+      position: fixed;
+      z-index: 9999;
+      background: var(--ngx-gantt-tooltip-bg, #2d3748);
+      color: var(--ngx-gantt-tooltip-text, #ffffff);
+      border-radius: 6px;
+      padding: 10px 14px;
+      min-width: 180px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.22);
+      pointer-events: none;
+      font-size: 12px;
+      line-height: 1.5;
+    }
+    .k-bar-tooltip-title {
+      font-weight: 700;
+      font-size: 13px;
+      margin-bottom: 6px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 220px;
+    }
+    .k-bar-tooltip-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      margin-top: 3px;
+    }
+    .k-bar-tooltip-label {
+      color: var(--ngx-gantt-tooltip-label, rgba(255,255,255,0.65));
+      white-space: nowrap;
+    }
+    .k-bar-tooltip-value {
+      font-weight: 500;
+      white-space: nowrap;
+    }
   `]
 })
 export class GanttChartComponent {
@@ -819,6 +886,11 @@ export class GanttChartComponent {
   scrollLeft = signal(0);
   private scrollTop_ = signal(0);
   private sidebarWidthOverride = signal<number | null>(null);
+
+  // Tooltip state
+  tooltipTask = signal<GanttTask | null>(null);
+  tooltipX = signal(0);
+  tooltipY = signal(0);
 
   // Merged config
   mergedConfig = computed<GanttConfig>(() => {
@@ -921,18 +993,38 @@ export class GanttChartComponent {
     const cfg = this.mergedConfig();
     const range = this.dateRange();
     const barHeight = 24; // default
-    const summaryHeight = 10;
 
-    return this.visibleRows().map((row, idx) => {
-      const left = this.scaleService.dateToX(row.task.start, range.start, cfg.columnWidth, cfg.zoomLevel);
-      const width = row.task.isMilestone
+    const makeBar = (
+      task: GanttTask,
+      top: number,
+      rowIndex: number,
+      isSummary: boolean,
+      primaryTaskId: string,
+    ) => ({
+      task,
+      left: this.scaleService.dateToX(task.start, range.start, cfg.columnWidth, cfg.zoomLevel),
+      width: task.isMilestone
         ? 0
-        : this.scaleService.getBarWidth(row.task.start, row.task.end, range.start, cfg.columnWidth, cfg.zoomLevel);
+        : this.scaleService.getBarWidth(task.start, task.end, range.start, cfg.columnWidth, cfg.zoomLevel),
+      top,
+      isSummary,
+      barHeight,
+      rowIndex,
+      primaryTaskId,
+    });
+
+    const bars: ReturnType<typeof makeBar>[] = [];
+
+    this.visibleRows().forEach((row, idx) => {
       const top = idx * cfg.rowHeight;
       const isSummary = row.hasChildren && !row.task.isMilestone;
-
-      return { task: row.task, left, width, top, isSummary, barHeight, rowIndex: idx };
+      bars.push(makeBar(row.task, top, idx, isSummary, row.task.id));
+      for (const extra of row.extraTasks) {
+        bars.push(makeBar(extra, top, idx, false, row.task.id));
+      }
     });
+
+    return bars;
   });
 
   // Dependency paths
@@ -1162,6 +1254,25 @@ export class GanttChartComponent {
   // Helpers
   formatDateShort(date: Date): string {
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  }
+
+  formatDateFull(date: Date): string {
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  }
+
+  showTooltip(task: GanttTask, event: MouseEvent): void {
+    this.tooltipTask.set(task);
+    const OFFSET = 14;
+    const TOOLTIP_W = 220;
+    const TOOLTIP_H = 100;
+    const flipCoord = (cursor: number, size: number, viewport: number): number =>
+      cursor + OFFSET + size > viewport ? cursor - size - OFFSET : cursor + OFFSET;
+    this.tooltipX.set(flipCoord(event.clientX, TOOLTIP_W, window.innerWidth));
+    this.tooltipY.set(flipCoord(event.clientY, TOOLTIP_H, window.innerHeight));
+  }
+
+  hideTooltip(): void {
+    this.tooltipTask.set(null);
   }
 
   private getPrimaryLabel(date: Date, zoom: ZoomLevel, locale: string): string {

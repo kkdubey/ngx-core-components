@@ -11,4 +11,6 @@ export interface GanttTask {
   meta?: Record<string, unknown>;
   draggable?: boolean;
   cssClass?: string;
+  /** Tasks sharing the same rowId (and the same parentId) are rendered in a single row. */
+  rowId?: string;
 }
