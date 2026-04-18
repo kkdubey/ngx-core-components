@@ -1,6 +1,6 @@
 {
   "name": "ngx-core-components",
-  "version": "0.0.1",
+  "version": "0.0.5",
   "description": "Angular component library featuring a full-featured SVG Gantt Chart with drag/resize, dependencies, zoom, tree hierarchy, and theming.",
   "keywords": [
     "angular",
@@ -18,12 +18,12 @@
   "author": "ngx-core-components contributors",
   "repository": {
     "type": "git",
-    "url": "https://github.com/prachi2274/ngx-core-components.git"
+    "url": "https://github.com/prajaktadube/ngx-core-components.git"
   },
   "bugs": {
-    "url": "https://github.com/prachi2274/ngx-core-components/issues"
+    "url": "https://github.com/prajaktadube/ngx-core-components/issues"
   },
-  "homepage": "https://github.com/prachi2274/ngx-core-components#readme",
+  "homepage": "https://prajaktadube.github.io/ngx-core-components/home",
   "peerDependencies": {
     "@angular/common": "^19.0.0",
     "@angular/core": "^19.0.0"
