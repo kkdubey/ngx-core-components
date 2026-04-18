@@ -41,7 +41,7 @@ jobs:
           npm version patch -m "chore: release version %s [skip ci]"
 
       - name: Build the Angular Library
-        run: npm run build
+        run: npx ng build ngx-core-components
 
       - name: Publish to npm
         # Navigates to the compiled output folder and publishes to npm
