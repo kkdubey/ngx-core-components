@@ -5,7 +5,6 @@ on:
     branches:
       - main
 
-# Explicitly grant the GitHub Action permission to push the version bump back to the repo
 permissions:
   contents: write
 
@@ -17,7 +16,8 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0 # Required to push version tags back to the repository
+          fetch-depth: 0
+          ref: main # FIX 1: Explicitly check out the branch, not the detached commit
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -34,17 +34,20 @@ jobs:
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
 
       - name: Bump Version in Library
-        # Navigates to your library folder and bumps the patch version (e.g., 0.0.5 -> 0.0.6)
-        # The [skip ci] tag is CRITICAL: it prevents this commit from triggering an infinite loop of workflows
+        # FIX 2: Manually handle the commit so NPM doesn't get confused by the sub-folder
         run: |
           cd projects/ngx-core-components
-          npm version patch -m "chore: release version %s [skip ci]"
+          npm version patch --no-git-tag-version
+          VERSION=$(node -p "require('./package.json').version")
+          cd ../..
+          git add projects/ngx-core-components/package.json
+          git commit -m "chore: release version $VERSION [skip ci]"
+          git tag "v$VERSION"
 
       - name: Build the Angular Library
         run: npx ng build ngx-core-components
 
       - name: Publish to npm
-        # Navigates to the compiled output folder and publishes to npm
         run: |
           cd dist/ngx-core-components
           npm publish --access public
@@ -52,5 +55,5 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Push Version Update back to GitHub
-        # Pushes the newly created version commit and tag back to your main branch
-        run: git push origin main --follow-tags
+        # FIX 3: Push the exact HEAD to the remote main branch
+        run: git push origin HEAD:main --follow-tags
