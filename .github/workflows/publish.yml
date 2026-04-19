@@ -17,7 +17,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          ref: main # FIX 1: Explicitly check out the branch, not the detached commit
+          ref: main
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -33,16 +33,38 @@ jobs:
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
 
-      - name: Bump Version in Library
-        # FIX 2: Manually handle the commit so NPM doesn't get confused by the sub-folder
+      - name: Determine Version Bump Type
+        id: determine_bump
+        # Analyzes the latest commit message to decide Major, Minor, or Patch
+        run: |
+          COMMIT_MSG=$(git log -1 --pretty=%B)
+          echo "Commit message: $COMMIT_MSG"
+          
+          if [[ "$COMMIT_MSG" == *"BREAKING CHANGE"* ]] || [[ "$COMMIT_MSG" == *"major:"* ]]; then
+            echo "BUMP_TYPE=major" >> $GITHUB_ENV
+          elif [[ "$COMMIT_MSG" == *"feat:"* ]] || [[ "$COMMIT_MSG" == *"minor:"* ]]; then
+            echo "BUMP_TYPE=minor" >> $GITHUB_ENV
+          else
+            echo "BUMP_TYPE=patch" >> $GITHUB_ENV
+          fi
+
+      - name: Auto-Sync and Bump Version
+        # Dynamically bumps the version based on the commit analysis
         run: |
           cd projects/ngx-core-components
-          npm version patch --no-git-tag-version
-          VERSION=$(node -p "require('./package.json').version")
+          
+          LIVE_VERSION=$(npm show ngx-core-components version)
+          npm version $LIVE_VERSION --no-git-tag-version --allow-same-version
+          
+          # This line now dynamically uses major, minor, or patch!
+          npm version ${{ env.BUMP_TYPE }} --no-git-tag-version
+          
+          NEW_VERSION=$(node -p "require('./package.json').version")
+          
           cd ../..
           git add projects/ngx-core-components/package.json
-          git commit -m "chore: release version $VERSION [skip ci]"
-          git tag "v$VERSION"
+          git commit -m "chore: release version $NEW_VERSION [skip ci]"
+          git tag "v$NEW_VERSION"
 
       - name: Build the Angular Library
         run: npx ng build ngx-core-components
@@ -55,5 +77,4 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Push Version Update back to GitHub
-        # FIX 3: Push the exact HEAD to the remote main branch
         run: git push origin HEAD:main --follow-tags
