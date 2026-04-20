@@ -197,6 +197,20 @@ interface ApiRow { name: string; type: string; default: string; description: str
               <button class="mini-btn" [class.active]="ganttZoom() === ZoomLevel.Day" (click)="setGanttZoom(ZoomLevel.Day)">Day</button>
               <button class="mini-btn" [class.active]="ganttZoom() === ZoomLevel.Week" (click)="setGanttZoom(ZoomLevel.Week)">Week</button>
               <button class="mini-btn" [class.active]="ganttZoom() === ZoomLevel.Month" (click)="setGanttZoom(ZoomLevel.Month)">Month</button>
+
+              <label class="gantt-control">
+                Snap
+                <select [value]="ganttSnap()" (change)="setGanttSnap($any($event.target).value)">
+                  <option value="none">None</option>
+                  <option value="day">Day</option>
+                  <option value="hour">Hour</option>
+                </select>
+              </label>
+
+              <label class="gantt-control gantt-toggle">
+                <input type="checkbox" [checked]="ganttShowGrid()" (change)="setGanttGrid($any($event.target).checked)" />
+                Show Grid
+              </label>
             </div>
             <div class="gantt-demo-wrap">
               <ngx-gantt-chart [tasks]="ganttTasks" [dependencies]="ganttDependencies" [config]="ganttConfig()" />
@@ -251,11 +265,39 @@ interface ApiRow { name: string; type: string; default: string; description: str
     .chart-card { background: #fff; border: 1px solid #e9ecef; border-radius: 8px; padding: 16px; }
     .chart-card-full { grid-column: 1 / -1; }
     .chart-card-title { font-size: 12px; font-weight: 600; color: #6c757d; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.4px; }
-    .gantt-card { display: flex; flex-direction: column; gap: 12px; }
+    .gantt-card {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      overflow: hidden;
+      position: relative;
+      isolation: isolate;
+    }
     .gantt-toolbar { display: flex; gap: 8px; }
-    .gantt-demo-wrap { height: 360px; border: 1px solid #f1f3f5; border-radius: 8px; overflow: hidden; }
+    .gantt-demo-wrap {
+      position: relative;
+      flex: 0 0 var(--ngx-gantt-min-height, 420px);
+      height: var(--ngx-gantt-min-height, 420px);
+      min-height: var(--ngx-gantt-min-height, 420px);
+      max-height: var(--ngx-gantt-min-height, 420px);
+      border: 1px solid #f1f3f5;
+      border-radius: 8px;
+      overflow: clip;
+      contain: layout paint;
+    }
+    .gantt-demo-wrap ngx-gantt-chart {
+      display: block;
+      width: 100%;
+      height: 100%;
+      min-height: 100%;
+      max-height: 100%;
+      --ngx-gantt-min-height: 420px;
+    }
     .mini-btn { padding: 6px 12px; border: 1px solid #ced4da; border-radius: 999px; background: #fff; color: #495057; font-size: 12px; cursor: pointer; font-family: inherit; }
     .mini-btn.active { background: #1a73e8; border-color: #1a73e8; color: #fff; }
+    .gantt-control { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: #495057; margin-left: 8px; }
+    .gantt-control select { border: 1px solid #ced4da; border-radius: 4px; padding: 3px 6px; font-size: 12px; }
+    .gantt-toggle { margin-left: 0; }
 
     /* Sparkline table */
     .sparkline-table { display: flex; flex-direction: column; gap: 12px; }
@@ -287,6 +329,8 @@ export class ChartsDemoComponent {
   activeTab = signal('Bar Chart');
   tabs = ['Bar Chart', 'Line Chart', 'Pie / Donut', 'Sparkline', 'Gantt'];
   ganttZoom = signal(ZoomLevel.Week);
+  ganttSnap = signal<'none' | 'day' | 'hour'>('day');
+  ganttShowGrid = signal(true);
 
   months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];
 
@@ -331,6 +375,12 @@ export class ChartsDemoComponent {
     showGrid: true,
     collapsible: true,
     snapTo: 'day',
+    sidebarColumns: [
+      { field: 'name', header: 'Task Name', width: 180 },
+      { field: 'start', header: 'Start', width: 80 },
+      { field: 'end', header: 'End', width: 80 },
+      { field: 'progress', header: '%', width: 50 },
+    ],
   });
 
   // ===== CODE SNIPPETS =====
@@ -429,7 +479,18 @@ export class MyComponent {
     <ngx-gantt-chart
       [tasks]="tasks"
       [dependencies]="dependencies"
-      [config]="{ zoomLevel: 'week', rowHeight: 40 }"
+      [config]="{
+        zoomLevel: 'week',
+        rowHeight: 40,
+        showGrid: true,
+        snapTo: 'hour',
+        sidebarColumns: [
+          { field: 'name', header: 'Task Name', width: 180 },
+          { field: 'start', header: 'Start', width: 80 },
+          { field: 'end', header: 'End', width: 80 },
+          { field: 'progress', header: '%', width: 50 }
+        ]
+      }"
     />
   \
 })
@@ -491,6 +552,16 @@ export class MyComponent {
     const columnWidth = level === ZoomLevel.Day ? 36 : level === ZoomLevel.Week ? 120 : 180;
     this.ganttZoom.set(level);
     this.ganttConfig.set({ ...this.ganttConfig(), zoomLevel: level, columnWidth });
+  }
+
+  setGanttSnap(value: 'none' | 'day' | 'hour'): void {
+    this.ganttSnap.set(value);
+    this.ganttConfig.set({ ...this.ganttConfig(), snapTo: value });
+  }
+
+  setGanttGrid(show: boolean): void {
+    this.ganttShowGrid.set(show);
+    this.ganttConfig.set({ ...this.ganttConfig(), showGrid: show });
   }
 
   chartCssVars: { name: string; default: string; description: string }[] = [

@@ -1,6 +1,7 @@
 import {
   Component,
   ChangeDetectionStrategy,
+  effect,
   input,
   output,
   computed,
@@ -13,6 +14,7 @@ import {
   GanttTask,
   GanttDependency,
   GanttConfig,
+  GanttColumnDef,
   DEFAULT_GANTT_CONFIG,
   ZoomLevel,
   GanttTaskChangeEvent,
@@ -43,7 +45,7 @@ import { Rect, computeDependencyPath } from './utils/svg-utils';
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="k-gantt" [class.k-gantt-dark]="false" (keydown)="onKeyDown($event)">
+    <div class="k-gantt" [class.k-gantt-dark]="false" [class.k-no-grid]="!mergedConfig().showGrid" (keydown)="onKeyDown($event)">
 
       <!-- ===== TREELIST (Left Panel) ===== -->
       <div class="k-gantt-treelist" [style.width.px]="mergedConfig().sidebarWidth">
@@ -51,17 +53,15 @@ import { Rect, computeDependencyPath } from './utils/svg-utils';
         <div class="k-treelist-header" [style.height.px]="mergedConfig().headerHeight">
           <table class="k-treelist-header-table">
             <colgroup>
-              <col [style.width.px]="mergedConfig().sidebarWidth - 220"/>
-              <col style="width: 80px"/>
-              <col style="width: 80px"/>
-              <col style="width: 60px"/>
+              @for (col of sidebarColumns(); track col.header + '-' + $index) {
+                <col [style.width.px]="col.width"/>
+              }
             </colgroup>
             <thead>
               <tr>
-                <th class="k-header-cell">Task Name</th>
-                <th class="k-header-cell">Start</th>
-                <th class="k-header-cell">End</th>
-                <th class="k-header-cell">%</th>
+                @for (col of sidebarColumns(); track col.header + '-' + $index) {
+                  <th class="k-header-cell">{{ col.header }}</th>
+                }
               </tr>
             </thead>
           </table>
@@ -71,10 +71,9 @@ import { Rect, computeDependencyPath } from './utils/svg-utils';
         <div class="k-treelist-content" #treelistContent>
           <table class="k-treelist-table">
             <colgroup>
-              <col [style.width.px]="mergedConfig().sidebarWidth - 220"/>
-              <col style="width: 80px"/>
-              <col style="width: 80px"/>
-              <col style="width: 60px"/>
+              @for (col of sidebarColumns(); track col.header + '-' + $index) {
+                <col [style.width.px]="col.width"/>
+              }
             </colgroup>
             <tbody>
               @for (row of visibleRows(); track row.task.id; let i = $index) {
@@ -88,52 +87,55 @@ import { Rect, computeDependencyPath } from './utils/svg-utils';
                   (mouseleave)="hoveredTaskId.set(null)"
                   (click)="onRowClick(row.task, $event)"
                 >
-                  <td class="k-treelist-cell k-name-cell"
-                    (mouseenter)="row.extraTasks.length > 0 ? showRowTooltip(row, $event) : null"
-                    (mousemove)="row.extraTasks.length > 0 ? updateRowTooltip($event) : null"
-                    (mouseleave)="row.extraTasks.length > 0 ? hideRowTooltip() : null"
-                  >
-                    <span class="k-indent" [style.width.px]="row.depth * 20"></span>
-                    @if (row.hasChildren && mergedConfig().collapsible) {
-                      <button
-                        class="k-collapse-btn"
-                        (click)="onToggleCollapse(row.task.id); $event.stopPropagation()"
-                        [attr.aria-expanded]="!row.task.collapsed"
-                      >
-                        <span class="k-icon" [class.k-collapsed]="row.task.collapsed">&#9660;</span>
-                      </button>
-                    } @else {
-                      <span class="k-collapse-spacer"></span>
-                    }
-                    @if (row.task.isMilestone) {
-                      <span class="k-milestone-icon">&#9670;</span>
-                    }
-                    <div class="k-name-wrapper">
-                      <span class="k-task-name" [class.k-summary-name]="row.hasChildren" [title]="row.task.name">
-                        {{ row.task.name }}
-                      </span>
-                      @if (row.extraTasks.length > 0) {
-                        <div class="k-extra-tasks-chips">
-                          @for (extra of row.extraTasks; track extra.id) {
-                            <span
-                              class="k-extra-task-chip"
-                              [style.background]="extra.color || '#6c757d'"
-                              [title]="extra.name"
-                            >{{ extra.name.length > 14 ? extra.name.slice(0, 14) + '…' : extra.name }}</span>
+                  @for (col of sidebarColumns(); track col.header + '-' + $index; let colIndex = $index) {
+                    <td
+                      class="k-treelist-cell"
+                      [class.k-name-cell]="isNameColumn(col, colIndex)"
+                      [class.k-date-cell]="isDateColumn(col)"
+                      [class.k-pct-cell]="isProgressColumn(col)"
+                      (mouseenter)="isNameColumn(col, colIndex) && row.extraTasks.length > 0 ? showRowTooltip(row, $event) : null"
+                      (mousemove)="isNameColumn(col, colIndex) && row.extraTasks.length > 0 ? updateRowTooltip($event) : null"
+                      (mouseleave)="isNameColumn(col, colIndex) && row.extraTasks.length > 0 ? hideRowTooltip() : null"
+                    >
+                      @if (isNameColumn(col, colIndex)) {
+                        <span class="k-indent" [style.width.px]="row.depth * 20"></span>
+                        @if (row.hasChildren && mergedConfig().collapsible) {
+                          <button
+                            class="k-collapse-btn"
+                            (click)="onToggleCollapse(row.task.id); $event.stopPropagation()"
+                            [attr.aria-expanded]="!row.task.collapsed"
+                          >
+                            <span class="k-icon" [class.k-collapsed]="row.task.collapsed">&#9660;</span>
+                          </button>
+                        } @else {
+                          <span class="k-collapse-spacer"></span>
+                        }
+                        @if (row.task.isMilestone) {
+                          <span class="k-milestone-icon">&#9670;</span>
+                        }
+                        <div class="k-name-wrapper">
+                          <span class="k-task-name" [class.k-summary-name]="row.hasChildren" [title]="row.task.name">
+                            {{ row.task.name }}
+                          </span>
+                          @if (row.extraTasks.length > 0) {
+                            <div class="k-extra-tasks-chips">
+                              @for (extra of row.extraTasks; track extra.id) {
+                                <span
+                                  class="k-extra-task-chip"
+                                  [style.background]="extra.color || '#6c757d'"
+                                  [title]="extra.name"
+                                >{{ extra.name.length > 14 ? extra.name.slice(0, 14) + '…' : extra.name }}</span>
+                              }
+                            </div>
                           }
                         </div>
+                      } @else if (isProgressColumn(col) && row.extraTasks.length > 0) {
+                        <span class="k-multi-pct" [title]="getRowProgressTitle(row)">~{{ getRowAvgProgress(row) }}%</span>
+                      } @else {
+                        {{ getSidebarCellValue(row, col) }}
                       }
-                    </div>
-                  </td>
-                  <td class="k-treelist-cell k-date-cell">{{ formatDateShort(getRowStart(row)) }}</td>
-                  <td class="k-treelist-cell k-date-cell">{{ formatDateShort(getRowEnd(row)) }}</td>
-                  <td class="k-treelist-cell k-pct-cell">
-                    @if (row.extraTasks.length > 0) {
-                      <span class="k-multi-pct" [title]="getRowProgressTitle(row)">~{{ getRowAvgProgress(row) }}%</span>
-                    } @else {
-                      {{ row.task.progress }}%
-                    }
-                  </td>
+                    </td>
+                  }
                 </tr>
               }
             </tbody>
@@ -202,18 +204,20 @@ import { Rect, computeDependencyPath } from './utils/svg-utils';
             </div>
 
             <!-- Vertical column lines -->
-            <div class="k-gantt-columns">
-              @for (col of headerColumns(); track col.x) {
-                <div
-                  class="k-gantt-column"
-                  [style.left.px]="col.x"
-                  [style.width.px]="col.width"
-                  [style.height.px]="totalHeight()"
-                  [class.k-weekend-col]="col.isWeekend"
-                >
-                </div>
-              }
-            </div>
+            @if (mergedConfig().showGrid) {
+              <div class="k-gantt-columns">
+                @for (col of headerColumns(); track col.x) {
+                  <div
+                    class="k-gantt-column"
+                    [style.left.px]="col.x"
+                    [style.width.px]="col.width"
+                    [style.height.px]="totalHeight()"
+                    [class.k-weekend-col]="col.isWeekend"
+                  >
+                  </div>
+                }
+              </div>
+            }
 
             <!-- Today marker -->
             @if (mergedConfig().showTodayMarker && todayX() !== null) {
@@ -248,7 +252,7 @@ import { Rect, computeDependencyPath } from './utils/svg-utils';
                       tabindex="0"
                       [attr.aria-label]="'Milestone: ' + bar.task.name"
                     >
-                      <div class="k-milestone-diamond" [style.background]="bar.task.color || null"></div>
+                      <div class="k-milestone-diamond" [style.background]="bar.task.color || '#e74c3c'"></div>
                     </div>
                   } @else if (bar.isSummary) {
                     <!-- Summary bar (parent task) -->
@@ -265,8 +269,8 @@ import { Rect, computeDependencyPath } from './utils/svg-utils';
                       tabindex="0"
                       [attr.aria-label]="bar.task.name + ' - ' + bar.task.progress + '% complete'"
                     >
-                      <div class="k-summary-bar">
-                        <div class="k-summary-progress" [style.width.%]="bar.task.progress"></div>
+                      <div class="k-summary-bar" [style.background]="'#495057'">
+                        <div class="k-summary-progress" [style.width.%]="bar.task.progress" [style.background]="'#343a40'"></div>
                       </div>
                       <div class="k-summary-left-cap"></div>
                       <div class="k-summary-right-cap"></div>
@@ -277,7 +281,7 @@ import { Rect, computeDependencyPath } from './utils/svg-utils';
                       class="k-task"
                       [style.left.px]="bar.left"
                       [style.width.px]="bar.width"
-                      [style.background]="bar.task.color || null"
+                      [style.background]="bar.task.color || '#4a90d9'"
                       [class.k-focused]="keyboardService.focusedTaskId() === bar.task.id"
                       [class.k-selected]="selectedTaskId() === bar.task.id"
                       (mouseenter)="hoveredTaskId.set(bar.primaryTaskId); showTooltip(bar.task, $event)"
@@ -291,10 +295,10 @@ import { Rect, computeDependencyPath } from './utils/svg-utils';
                     >
                       <!-- Progress fill -->
                       <div class="k-task-progress" [style.width.%]="bar.task.progress">
-                        <div class="k-task-progress-inner"></div>
+                        <div class="k-task-progress-inner" [style.background]="'#2d6cb4'"></div>
                       </div>
                       <!-- Task text -->
-                      <span class="k-task-text">{{ bar.task.name }}</span>
+                      <span class="k-task-text" [style.color]="'#ffffff'">{{ bar.task.name }}</span>
                       <!-- Resize handles -->
                       @if (bar.task.draggable !== false) {
                         <div class="k-resize-handle k-resize-w" (pointerdown)="onBarPointerDown($event, bar.task, 'resize-left')"></div>
@@ -317,7 +321,7 @@ import { Rect, computeDependencyPath } from './utils/svg-utils';
                 <path
                   class="k-dep-line"
                   [attr.d]="dep.path"
-                  [attr.stroke]="dep.dependency.color || null"
+                  [attr.stroke]="dep.dependency.color || '#ff6358'"
                   marker-end="url(#k-arrowhead)"
                   (click)="onDependencyClick(dep.dependency, $event)"
                 />
@@ -381,11 +385,14 @@ import { Rect, computeDependencyPath } from './utils/svg-utils';
     /* ===== ROOT ===== */
     :host {
       display: block;
+      height: 100%;
+      min-height: var(--ngx-gantt-min-height, 420px);
     }
 
     .k-gantt {
       display: flex;
       height: 100%;
+      min-height: inherit;
       width: 100%;
       background: var(--ngx-gantt-bg, #ffffff);
       border: 1px solid var(--ngx-gantt-border, #dee2e6);
@@ -972,6 +979,16 @@ import { Rect, computeDependencyPath } from './utils/svg-utils';
       text-overflow: ellipsis;
       white-space: nowrap;
     }
+
+    .k-gantt.k-no-grid .k-header-cell,
+    .k-gantt.k-no-grid .k-treelist-cell,
+    .k-gantt.k-no-grid .k-treelist-row,
+    .k-gantt.k-no-grid .k-header-group-cell,
+    .k-gantt.k-no-grid .k-header-tick-cell,
+    .k-gantt.k-no-grid .k-gantt-row,
+    .k-gantt.k-no-grid .k-gantt-column {
+      border: none !important;
+    }
   `]
 })
 export class GanttChartComponent {
@@ -1004,6 +1021,7 @@ export class GanttChartComponent {
   scrollLeft = signal(0);
   private scrollTop_ = signal(0);
   private sidebarWidthOverride = signal<number | null>(null);
+  private lastEmittedZoom = signal<ZoomLevel | null>(null);
 
   // Tooltip state
   tooltipTask = signal<GanttTask | null>(null);
@@ -1023,6 +1041,15 @@ export class GanttChartComponent {
       base.sidebarWidth = sbOverride;
     }
     return base;
+  });
+
+  // Sidebar columns from config
+  sidebarColumns = computed<GanttColumnDef[]>(() => {
+    const columns = this.mergedConfig().sidebarColumns ?? [];
+    if (columns.length === 0) {
+      return DEFAULT_GANTT_CONFIG.sidebarColumns;
+    }
+    return columns.map(column => ({ ...column, width: Math.max(60, column.width || 120) }));
   });
 
   // Tasks with collapse applied
@@ -1177,6 +1204,16 @@ export class GanttChartComponent {
       });
   });
 
+  constructor() {
+    effect(() => {
+      const zoom = this.mergedConfig().zoomLevel;
+      if (this.lastEmittedZoom() !== zoom) {
+        this.lastEmittedZoom.set(zoom);
+        this.zoomChange.emit(zoom);
+      }
+    });
+  }
+
   // Timeline scroll handler — syncs treelist scroll & header position
   onTimelineScroll(): void {
     const el = this.timelineContent()?.nativeElement;
@@ -1187,6 +1224,17 @@ export class GanttChartComponent {
     // Sync treelist vertical scroll
     const treeEl = this.treelistContent()?.nativeElement;
     if (treeEl) treeEl.scrollTop = el.scrollTop;
+
+    const cfg = this.mergedConfig();
+    const range = this.dateRange();
+    const visibleStartDate = this.scaleService.xToDate(el.scrollLeft, range.start, cfg.columnWidth, cfg.zoomLevel);
+    const visibleEndDate = this.scaleService.xToDate(el.scrollLeft + el.clientWidth, range.start, cfg.columnWidth, cfg.zoomLevel);
+    this.scroll.emit({
+      scrollLeft: el.scrollLeft,
+      scrollTop: el.scrollTop,
+      visibleStartDate,
+      visibleEndDate,
+    });
   }
 
   // Splitbar resize
@@ -1276,9 +1324,9 @@ export class GanttChartComponent {
         newEnd = previousEnd;
       }
 
-      if (cfg.snapTo === 'day') {
-        newStart = this.scaleService.snapDate(newStart, 'day');
-        newEnd = this.scaleService.snapDate(newEnd, 'day');
+      if (cfg.snapTo !== 'none') {
+        newStart = this.scaleService.snapDate(newStart, cfg.snapTo);
+        newEnd = this.scaleService.snapDate(newEnd, cfg.snapTo);
       }
       if (newEnd <= newStart) {
         newEnd = addDays(newStart, 1);
@@ -1376,11 +1424,48 @@ export class GanttChartComponent {
 
   // Helpers
   formatDateShort(date: Date): string {
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    return date.toLocaleDateString(this.mergedConfig().locale, { month: 'short', day: 'numeric' });
   }
 
   formatDateFull(date: Date): string {
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    return date.toLocaleDateString(this.mergedConfig().locale, { month: 'short', day: 'numeric', year: 'numeric' });
+  }
+
+  isNameColumn(column: GanttColumnDef, index: number): boolean {
+    if (typeof column.field === 'function') {
+      return index === 0;
+    }
+    return column.field === 'name' || index === 0;
+  }
+
+  isDateColumn(column: GanttColumnDef): boolean {
+    return typeof column.field === 'string' && (column.field === 'start' || column.field === 'end');
+  }
+
+  isProgressColumn(column: GanttColumnDef): boolean {
+    return typeof column.field === 'string' && column.field === 'progress';
+  }
+
+  getSidebarCellValue(row: FlatRow, column: GanttColumnDef): string {
+    if (typeof column.field === 'function') {
+      return String(column.field(row.task) ?? '');
+    }
+
+    switch (column.field) {
+      case 'start':
+        return this.formatDateShort(getRowStartForCell(row));
+      case 'end':
+        return this.formatDateShort(getRowEndForCell(row));
+      case 'progress':
+        return row.extraTasks.length > 0 ? `~${this.getRowAvgProgress(row)}%` : `${row.task.progress}%`;
+      default: {
+        const value = ((row.task as unknown) as Record<string, unknown>)[column.field];
+        if (value instanceof Date) {
+          return this.formatDateShort(value);
+        }
+        return value == null ? '' : String(value);
+      }
+    }
   }
 
   showTooltip(task: GanttTask, event: MouseEvent): void {
@@ -1493,4 +1578,16 @@ export class GanttChartComponent {
       case ZoomLevel.Month: return 2592000000;
     }
   }
+}
+
+function getRowStartForCell(row: FlatRow): Date {
+  if (row.extraTasks.length === 0) return row.task.start;
+  const times = [row.task.start, ...row.extraTasks.map(t => t.start)].map(d => d.getTime());
+  return new Date(Math.min(...times));
+}
+
+function getRowEndForCell(row: FlatRow): Date {
+  if (row.extraTasks.length === 0) return row.task.end;
+  const times = [row.task.end, ...row.extraTasks.map(t => t.end)].map(d => d.getTime());
+  return new Date(Math.max(...times));
 }
