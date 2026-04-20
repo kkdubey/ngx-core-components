@@ -1,0 +1,322 @@
+import { Component, signal } from '@angular/core';
+import { ButtonComponent, ButtonGroupComponent, ChipComponent, ChipListComponent, SplitButtonComponent, DropDownButtonComponent } from 'ngx-core-components/buttons';
+
+interface ApiRow { name: string; type: string; default: string; description: string; }
+
+@Component({
+  selector: 'app-buttons-demo',
+  standalone: true,
+  imports: [ButtonComponent, ButtonGroupComponent, ChipComponent, ChipListComponent, SplitButtonComponent, DropDownButtonComponent],
+  template: `
+    <div class="demo-page">
+      <!-- Page Header -->
+      <div class="page-header">
+        <div class="page-header-text">
+          <h1>Buttons & Actions</h1>
+          <p>Interactive button components, chips, and action triggers for enterprise applications.</p>
+        </div>
+        <div class="header-badges">
+          <span class="badge badge-blue">Variants</span>
+          <span class="badge badge-blue">Sizes</span>
+          <span class="badge badge-blue">States</span>
+          <span class="badge badge-blue">Icons</span>
+        </div>
+      </div>
+
+      <!-- TAB NAV -->
+      <div class="tab-nav">
+        @for (tab of tabs; track tab) {
+          <button class="tab-btn" [class.active]="activeTab() === tab" (click)="activeTab.set(tab)">{{ tab }}</button>
+        }
+      </div>
+
+      <!-- ===== DEMO ===== -->
+      @if (activeTab() === 'Demo') {
+        <div class="tab-content">
+          <div class="section-label">Button Variants</div>
+          <div class="demo-row wrap">
+            <ngx-button variant="primary">Primary</ngx-button>
+            <ngx-button variant="secondary">Secondary</ngx-button>
+            <ngx-button variant="success">Success</ngx-button>
+            <ngx-button variant="danger">Danger</ngx-button>
+            <ngx-button variant="warning">Warning</ngx-button>
+            <ngx-button variant="info">Info</ngx-button>
+            <ngx-button variant="ghost">Ghost</ngx-button>
+            <ngx-button variant="link">Link</ngx-button>
+          </div>
+
+          <div class="section-label">Sizes</div>
+          <div class="demo-row align-center">
+            <ngx-button size="sm">Small</ngx-button>
+            <ngx-button size="md">Medium</ngx-button>
+            <ngx-button size="lg">Large</ngx-button>
+          </div>
+
+          <div class="section-label">Shapes</div>
+          <div class="demo-row">
+            <ngx-button shape="rectangle">Rectangle</ngx-button>
+            <ngx-button shape="rounded">Rounded</ngx-button>
+            <ngx-button shape="pill">Pill</ngx-button>
+          </div>
+
+          <div class="section-label">States & Icons</div>
+          <div class="demo-row">
+            <ngx-button [loading]="loading()">{{ loading() ? 'Loading...' : 'Click to Load' }}</ngx-button>
+            <ngx-button [disabled]="true">Disabled</ngx-button>
+            <ngx-button prefixIcon="⬇" variant="primary">Download</ngx-button>
+            <ngx-button suffixIcon="→" variant="secondary">Next</ngx-button>
+          </div>
+          <div class="demo-row" style="margin-top:12px">
+            <button class="demo-trigger" (click)="loading.set(!loading())">Toggle Loading State</button>
+          </div>
+
+          <div class="section-label">Button Groups</div>
+          <div class="demo-row">
+            <ngx-button-group>
+              <ngx-button variant="secondary">Left</ngx-button>
+              <ngx-button variant="secondary">Center</ngx-button>
+              <ngx-button variant="secondary">Right</ngx-button>
+            </ngx-button-group>
+          </div>
+          <div class="demo-row" style="margin-top:12px">
+            <ngx-button-group [vertical]="true">
+              <ngx-button variant="secondary">Top</ngx-button>
+              <ngx-button variant="secondary">Middle</ngx-button>
+              <ngx-button variant="secondary">Bottom</ngx-button>
+            </ngx-button-group>
+          </div>
+
+          <div class="section-label">Chips</div>
+          <div class="demo-row wrap">
+            <ngx-chip label="Default" />
+            <ngx-chip label="Info" variant="info" />
+            <ngx-chip label="Success" variant="success" />
+            <ngx-chip label="Warning" variant="warning" />
+            <ngx-chip label="Danger" variant="danger" />
+            <ngx-chip label="Outlined" variant="outlined" />
+            <ngx-chip label="Removable" [removable]="true" (removed)="onRemove()" />
+            <ngx-chip label="Selectable" [selectable]="true" />
+          </div>
+
+          <div class="section-label">Chip List</div>
+          <ngx-chip-list>
+            @for (tag of tags(); track tag) {
+              <ngx-chip [label]="tag" [removable]="true" (removed)="removeTag(tag)" variant="info" />
+            }
+          </ngx-chip-list>
+
+          <div class="section-label">Split Button</div>
+          <div class="demo-row">
+            <ngx-split-button
+              [items]="splitItems"
+              (mainClicked)="log('split-main')"
+              (itemClicked)="log('split:' + ($event.label ?? $event.text ?? 'item'))"
+            >Save</ngx-split-button>
+          </div>
+
+          <div class="section-label">Dropdown Button</div>
+          <div class="demo-row">
+            <ngx-dropdown-button
+              label="Actions"
+              [items]="dropdownItems"
+              (itemClicked)="log($event.label ?? $event.text ?? 'item')"
+            />
+          </div>
+
+          @if (lastAction()) {
+            <div class="demo-log">Last action: {{ lastAction() }}</div>
+          }
+
+          <div class="section-label">How to Use</div>
+          <pre style="margin:0;background:#1e1e1e;color:#d4d4d4;padding:16px;border-radius:8px;font-size:12px;line-height:1.5;overflow:auto">{{ howToCode }}</pre>
+        </div>
+      }
+
+      <!-- ===== API REFERENCE ===== -->
+      @if (activeTab() === 'API Reference') {
+        <div class="tab-content">
+          <div class="section-label">Button</div>
+          <div class="api-table-wrap">
+            <table class="api-table">
+              <thead><tr><th>Input / Output</th><th>Type</th><th>Default</th><th>Description</th></tr></thead>
+              <tbody>
+                @for (row of buttonApi; track row.name) {
+                  <tr><td class="api-name">{{ row.name }}</td><td class="api-type">{{ row.type }}</td><td class="api-default">{{ row.default }}</td><td>{{ row.description }}</td></tr>
+                }
+              </tbody>
+            </table>
+          </div>
+
+          <div class="section-label">Button Group</div>
+          <div class="api-table-wrap">
+            <table class="api-table">
+              <thead><tr><th>Input / Output</th><th>Type</th><th>Default</th><th>Description</th></tr></thead>
+              <tbody>
+                @for (row of buttonGroupApi; track row.name) {
+                  <tr><td class="api-name">{{ row.name }}</td><td class="api-type">{{ row.type }}</td><td class="api-default">{{ row.default }}</td><td>{{ row.description }}</td></tr>
+                }
+              </tbody>
+            </table>
+          </div>
+
+          <div class="section-label">Chip</div>
+          <div class="api-table-wrap">
+            <table class="api-table">
+              <thead><tr><th>Input / Output</th><th>Type</th><th>Default</th><th>Description</th></tr></thead>
+              <tbody>
+                @for (row of chipApi; track row.name) {
+                  <tr><td class="api-name">{{ row.name }}</td><td class="api-type">{{ row.type }}</td><td class="api-default">{{ row.default }}</td><td>{{ row.description }}</td></tr>
+                }
+              </tbody>
+            </table>
+          </div>
+
+          <div class="section-label">Chip List</div>
+          <div class="api-table-wrap">
+            <table class="api-table">
+              <thead><tr><th>Input / Output</th><th>Type</th><th>Default</th><th>Description</th></tr></thead>
+              <tbody>
+                @for (row of chipListApi; track row.name) {
+                  <tr><td class="api-name">{{ row.name }}</td><td class="api-type">{{ row.type }}</td><td class="api-default">{{ row.default }}</td><td>{{ row.description }}</td></tr>
+                }
+              </tbody>
+            </table>
+          </div>
+
+          <div class="section-label">Split Button</div>
+          <div class="api-table-wrap">
+            <table class="api-table">
+              <thead><tr><th>Input / Output</th><th>Type</th><th>Default</th><th>Description</th></tr></thead>
+              <tbody>
+                @for (row of splitButtonApi; track row.name) {
+                  <tr><td class="api-name">{{ row.name }}</td><td class="api-type">{{ row.type }}</td><td class="api-default">{{ row.default }}</td><td>{{ row.description }}</td></tr>
+                }
+              </tbody>
+            </table>
+          </div>
+
+          <div class="section-label">Dropdown Button</div>
+          <div class="api-table-wrap">
+            <table class="api-table">
+              <thead><tr><th>Input / Output</th><th>Type</th><th>Default</th><th>Description</th></tr></thead>
+              <tbody>
+                @for (row of dropdownApi; track row.name) {
+                  <tr><td class="api-name">{{ row.name }}</td><td class="api-type">{{ row.type }}</td><td class="api-default">{{ row.default }}</td><td>{{ row.description }}</td></tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </div>
+      }
+    </div>
+  `,
+  styles: [`
+    :host { display: flex; flex-direction: column; height: 100%; overflow-y: auto; }
+    .demo-page { padding: 32px 40px; max-width: 1200px; margin: 0 auto; width: 100%; display: flex; flex-direction: column; gap: 28px; }
+    .page-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; padding-bottom: 24px; border-bottom: 2px solid rgba(230, 230, 245, 0.6); }
+    .page-header-text h1 { margin: 0 0 8px; font-size: 28px; font-weight: 900; color: #1a1a2e; letter-spacing: -0.5px; }
+    .page-header-text p { margin: 0; font-size: 14px; color: #6c757d; line-height: 1.7; max-width: 600px; }
+    .header-badges { display: flex; gap: 10px; flex-shrink: 0; flex-wrap: wrap; }
+    .badge { font-size: 11px; font-weight: 700; padding: 6px 12px; border-radius: 16px; transition: all 0.2s ease; }
+    .badge-blue { background: linear-gradient(135deg, #e8f0fe 0%, #d1e3ff 100%); color: #1a73e8; border: 1px solid rgba(26, 115, 232, 0.1); }
+    .tab-nav { display: flex; gap: 0; border-bottom: 2px solid #e9ecef; overflow-x: auto; padding-bottom: 0; }
+    .tab-btn { padding: 12px 20px; background: none; border: none; font-size: 13px; font-weight: 500; color: #6c757d; cursor: pointer; border-bottom: 3px solid transparent; margin-bottom: -2px; font-family: inherit; transition: all 0.2s ease; white-space: nowrap; }
+    .tab-btn:hover { color: #495057; background: rgba(26, 115, 232, 0.05); }
+    .tab-btn.active { color: #1a73e8; border-bottom-color: #1a73e8; font-weight: 600; background: rgba(26, 115, 232, 0.04); }
+    .tab-content { display: flex; flex-direction: column; gap: 20px; }
+    .section-label { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 1.2px; color: #8892a0; border-bottom: 2px solid #e9ecef; padding-bottom: 12px; }
+    .demo-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-start; }
+    .demo-row.align-center { align-items: center; }
+    .demo-row.wrap { flex-wrap: wrap; }
+    .demo-trigger { padding: 6px 14px; font-size: 13px; border: 1px solid #dee2e6; border-radius: 4px; cursor: pointer; background: #f8f9fa; transition: all 0.2s ease; }
+    .demo-trigger:hover { background: #e9ecef; }
+    .demo-log { background: linear-gradient(135deg, #f8f9fa 0%, #f3f5f9 100%); border: 1px solid #e0e5ed; border-radius: 8px; padding: 12px 16px; font-size: 12px; font-family: monospace; color: #495057; border-left: 3px solid #1a73e8; }
+    .api-table-wrap { overflow-x: auto; border: 1px solid #e9ecef; border-radius: 10px; }
+    .api-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .api-table thead tr { background: linear-gradient(135deg, #f8f9fa 0%, #f3f5f9 100%); }
+    .api-table th { padding: 12px 16px; text-align: left; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.7px; color: #495057; border-bottom: 2px solid #e9ecef; white-space: nowrap; }
+    .api-table td { padding: 12px 16px; border-bottom: 1px solid #f1f3f5; color: #495057; vertical-align: top; }
+    .api-table tbody tr { transition: background 0.2s ease; }
+    .api-table tbody tr:hover td { background: #f8f9fa; }
+    .api-table tbody tr:last-child td { border-bottom: none; }
+    .api-name { color: #1a73e8 !important; font-family: monospace; font-weight: 700; white-space: nowrap; }
+    .api-type { color: #8e44ad !important; font-family: monospace; white-space: nowrap; }
+    .api-default { font-family: monospace; white-space: nowrap; color: #ff6b6b; font-weight: 500; }
+  `]
+})
+export class ButtonsDemoComponent {
+  activeTab = signal('Demo');
+  tabs = ['Demo', 'API Reference'];
+  loading = signal(false);
+  lastAction = signal('');
+  tags = signal(['Angular', 'TypeScript', 'Enterprise', 'UI Library']);
+
+  howToCode = `import { Component } from '@angular/core';
+import { ButtonComponent, SplitButtonComponent } from 'ngx-core-components/buttons';
+
+@Component({
+  selector: 'app-example',
+  standalone: true,
+  imports: [ButtonComponent, SplitButtonComponent],
+  template: '<ngx-button variant="primary">Save</ngx-button><ngx-split-button [items]="items">Actions</ngx-split-button>'
+})
+export class ExampleComponent {
+  items = [{ label: 'Save Draft' }, { label: 'Publish' }];
+}`;
+
+  splitItems = [{ label: 'Save Draft', icon: '📝' }, { label: 'Save & Publish', icon: '🚀' }, { separator: true }, { label: 'Discard Changes', icon: '🗑' }];
+  dropdownItems = [{ label: 'Edit', icon: '✏️' }, { label: 'Duplicate', icon: '📋' }, { label: 'Archive', icon: '📦' }, { separator: true }, { label: 'Delete', icon: '🗑', variant: 'danger' }];
+
+  buttonApi: ApiRow[] = [
+    { name: 'variant', type: "'primary'|'secondary'|'success'|'danger'|'warning'|'info'|'ghost'|'link'", default: "'primary'", description: 'Visual style of the button.' },
+    { name: 'size', type: "'sm'|'md'|'lg'", default: "'md'", description: 'Button size.' },
+    { name: 'shape', type: "'rectangle'|'rounded'|'pill'", default: "'rounded'", description: 'Button border radius style.' },
+    { name: 'disabled', type: 'boolean', default: 'false', description: 'Disable button interaction.' },
+    { name: 'loading', type: 'boolean', default: 'false', description: 'Show loading spinner and disable clicks.' },
+    { name: 'prefixIcon', type: 'string', default: 'undefined', description: 'Icon displayed before the label.' },
+    { name: 'suffixIcon', type: 'string', default: 'undefined', description: 'Icon displayed after the label.' },
+    { name: 'click', type: 'Output<void>', default: 'n/a', description: 'Emitted when button is clicked.' },
+  ];
+
+  buttonGroupApi: ApiRow[] = [
+    { name: 'vertical', type: 'boolean', default: 'false', description: 'Stack buttons vertically instead of horizontally.' },
+  ];
+
+  chipApi: ApiRow[] = [
+    { name: 'label', type: 'string', default: 'undefined', description: 'Text to display on the chip.' },
+    { name: 'variant', type: "'default'|'info'|'success'|'warning'|'error'|'danger'|'outlined'", default: "'default'", description: 'Visual style of the chip.' },
+    { name: 'icon', type: 'string', default: 'undefined', description: 'Icon to display before the label.' },
+    { name: 'removable', type: 'boolean', default: 'false', description: 'Show remove button (X).' },
+    { name: 'selectable', type: 'boolean', default: 'false', description: 'Enable selection on click.' },
+    { name: 'selected', type: 'boolean', default: 'false', description: 'Initial selected state.' },
+    { name: 'disabled', type: 'boolean', default: 'false', description: 'Disable chip interaction.' },
+    { name: 'removed', type: 'Output<void>', default: 'n/a', description: 'Emitted when remove button is clicked.' },
+    { name: 'selectionChange', type: 'Output<boolean>', default: 'n/a', description: 'Emitted when selection state changes.' },
+  ];
+
+  chipListApi: ApiRow[] = [
+    { name: 'wrap', type: 'boolean', default: 'true', description: 'Allows chips to wrap to multiple lines when space runs out.' },
+  ];
+
+  splitButtonApi: ApiRow[] = [
+    { name: 'variant', type: "'primary'|'secondary'|'success'|'danger'|'warning'|'info'|'ghost'|'link'", default: "'primary'", description: 'Visual style of the main action button.' },
+    { name: 'size', type: "'sm'|'md'|'lg'", default: "'md'", description: 'Size of the main button and arrow trigger.' },
+    { name: 'disabled', type: 'boolean', default: 'false', description: 'Disables both the main action and the menu trigger.' },
+    { name: 'loading', type: 'boolean', default: 'false', description: 'Shows the loading state on the main button.' },
+    { name: 'items', type: 'SplitButtonItem[]', default: '[]', description: 'Menu items displayed from the split arrow.' },
+    { name: '(mainClicked)', type: 'MouseEvent', default: 'n/a', description: 'Emitted when the primary action button is clicked.' },
+    { name: '(itemClicked)', type: 'SplitButtonItem', default: 'n/a', description: 'Emitted when a menu item is selected.' },
+  ];
+
+  dropdownApi: ApiRow[] = [
+    { name: 'variant', type: "'primary'|'secondary'|'success'|'danger'|'warning'|'info'|'ghost'|'link'", default: "'secondary'", description: 'Visual style of the dropdown button.' },
+    { name: 'size', type: "'sm'|'md'|'lg'", default: "'md'", description: 'Size of the dropdown button.' },
+    { name: 'disabled', type: 'boolean', default: 'false', description: 'Disables the dropdown button.' },
+    { name: 'items', type: 'DropDownButtonItem[]', default: '[]', description: 'Menu items shown when the button opens.' },
+    { name: '(itemClicked)', type: 'DropDownButtonItem', default: 'n/a', description: 'Emitted when a dropdown menu item is selected.' },
+  ];
+
+  log(msg: string): void { this.lastAction.set(msg); }
+  onRemove(label?: string): void { this.lastAction.set('Removed chip: ' + (label ?? 'chip')); }
+  removeTag(tag: string): void { this.tags.update(t => t.filter(x => x !== tag)); }
+}

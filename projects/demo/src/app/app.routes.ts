@@ -62,4 +62,29 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./pages/dialog-demo/dialog-demo.component').then(m => m.DialogDemoComponent),
   },
+    {
+      path: 'buttons',
+      loadComponent: () =>
+        import('./pages/buttons-demo/buttons-demo.component').then(m => m.ButtonsDemoComponent),
+    },
+    {
+      path: 'layout',
+      loadComponent: () =>
+        import('./pages/layout-demo/layout-demo.component').then(m => m.LayoutDemoComponent),
+    },
+    {
+      path: 'feedback',
+      loadComponent: () =>
+        import('./pages/feedback-demo/feedback-demo.component').then(m => m.FeedbackDemoComponent),
+    },
+    {
+      path: 'navigation',
+      loadComponent: () =>
+        import('./pages/navigation-demo/navigation-demo.component').then(m => m.NavigationDemoComponent),
+    },
+    {
+      path: 'barcodes',
+      loadComponent: () =>
+        import('./pages/barcodes-demo/barcodes-demo.component').then(m => m.BarcodesDemoComponent),
+    },
 ];

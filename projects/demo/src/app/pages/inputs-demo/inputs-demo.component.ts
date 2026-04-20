@@ -4,6 +4,7 @@ import {
   CheckboxComponent, RadioGroupComponent, AutocompleteComponent,
   DropdownOption, RadioOption
 } from 'ngx-core-components';
+import { SliderComponent, SwitchComponent, RatingComponent, NumericTextBoxComponent, TextareaComponent, ColorPickerComponent, TimePickerComponent, DateRangePickerComponent } from 'ngx-core-components/inputs';
 
 interface ApiRow { name: string; type: string; default: string; description: string; }
 
@@ -13,6 +14,8 @@ interface ApiRow { name: string; type: string; default: string; description: str
   imports: [
     TextBoxComponent, DropdownComponent, DatePickerComponent, MultiSelectComponent,
     CheckboxComponent, RadioGroupComponent, AutocompleteComponent,
+      SliderComponent, SwitchComponent, RatingComponent, NumericTextBoxComponent,
+      TextareaComponent, ColorPickerComponent, TimePickerComponent, DateRangePickerComponent,
   ],
   template: `
     <div class="demo-page">
@@ -31,11 +34,16 @@ interface ApiRow { name: string; type: string; default: string; description: str
         </div>
       </div>
 
-      <!-- TAB NAV -->
-      <div class="tab-nav">
-        @for (tab of tabs; track tab) {
-          <button class="tab-btn" [class.active]="activeTab() === tab" (click)="activeTab.set(tab)">{{ tab }}</button>
-        }
+      <!-- COMPONENT SELECTOR GRID -->
+      <div class="component-selector">
+        <div class="selector-label">Select Input Component</div>
+        <div class="selector-grid">
+          @for (tab of tabs; track tab) {
+            <button class="selector-btn" [class.active]="activeTab() === tab" (click)="activeTab.set(tab)">
+              <span class="btn-label">{{ tab }}</span>
+            </button>
+          }
+        </div>
       </div>
 
       <!-- ===== TEXTBOX ===== -->
@@ -219,6 +227,18 @@ interface ApiRow { name: string; type: string; default: string; description: str
 
           <div class="section-label">How to Use</div>
           <pre class="code-block">{{ checkboxCode }}</pre>
+
+          <div class="section-label">API Reference</div>
+          <div class="api-table-wrap">
+            <table class="api-table">
+              <thead><tr><th>Input / Output</th><th>Type</th><th>Default</th><th>Description</th></tr></thead>
+              <tbody>
+                @for (row of checkboxApi; track row.name) {
+                  <tr><td class="api-name">{{ row.name }}</td><td class="api-type">{{ row.type }}</td><td class="api-default">{{ row.default }}</td><td>{{ row.description }}</td></tr>
+                }
+              </tbody>
+            </table>
+          </div>
         </div>
       }
 
@@ -243,6 +263,18 @@ interface ApiRow { name: string; type: string; default: string; description: str
 
           <div class="section-label">How to Use</div>
           <pre class="code-block">{{ radioCode }}</pre>
+
+          <div class="section-label">API Reference</div>
+          <div class="api-table-wrap">
+            <table class="api-table">
+              <thead><tr><th>Input / Output</th><th>Type</th><th>Default</th><th>Description</th></tr></thead>
+              <tbody>
+                @for (row of radioApi; track row.name) {
+                  <tr><td class="api-name">{{ row.name }}</td><td class="api-type">{{ row.type }}</td><td class="api-default">{{ row.default }}</td><td>{{ row.description }}</td></tr>
+                }
+              </tbody>
+            </table>
+          </div>
         </div>
       }
 
@@ -274,49 +306,353 @@ interface ApiRow { name: string; type: string; default: string; description: str
 
           <div class="section-label">How to Use</div>
           <pre class="code-block">{{ autocompleteCode }}</pre>
+
+          <div class="section-label">API Reference</div>
+          <div class="api-table-wrap">
+            <table class="api-table">
+              <thead><tr><th>Input / Output</th><th>Type</th><th>Default</th><th>Description</th></tr></thead>
+              <tbody>
+                @for (row of autocompleteApi; track row.name) {
+                  <tr><td class="api-name">{{ row.name }}</td><td class="api-type">{{ row.type }}</td><td class="api-default">{{ row.default }}</td><td>{{ row.description }}</td></tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </div>
+      }
+
+      <!-- ===== SLIDER ===== -->
+      @if (activeTab() === 'Slider') {
+        <div class="tab-content">
+          <div class="section-label">Live Demo</div>
+          <div class="demo-cards-grid">
+            <div class="demo-card">
+              <div class="demo-card-title">Single Value Slider</div>
+              <ngx-slider label="Volume" [min]="0" [max]="100" [step]="1" [showTicks]="true" (valueChange)="sliderValue.set($event)" />
+              <div class="value-display">Volume: {{ sliderValue() }}</div>
+            </div>
+            <div class="demo-card">
+              <div class="demo-card-title">Range Slider</div>
+              <ngx-slider label="Price Range" [min]="0" [max]="1000" [step]="10" [range]="true" [showValue]="true" (rangeChange)="priceRange.set($event)" />
+              <div class="value-display">Range: {{ priceRange()[0] }} - {{ priceRange()[1] }}</div>
+            </div>
+          </div>
+
+          <div class="section-label">How to Use</div>
+          <pre class="code-block">{{ sliderCode }}</pre>
+
+          <div class="section-label">API Reference</div>
+          <div class="api-table-wrap">
+            <table class="api-table">
+              <thead><tr><th>Input / Output</th><th>Type</th><th>Default</th><th>Description</th></tr></thead>
+              <tbody>
+                @for (row of sliderApi; track row.name) {
+                  <tr><td class="api-name">{{ row.name }}</td><td class="api-type">{{ row.type }}</td><td class="api-default">{{ row.default }}</td><td>{{ row.description }}</td></tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </div>
+      }
+
+      <!-- ===== SWITCH ===== -->
+      @if (activeTab() === 'Switch') {
+        <div class="tab-content">
+          <div class="section-label">Live Demo</div>
+          <div class="demo-cards-grid">
+            <div class="demo-card">
+              <div class="demo-card-title">Switch Sizes</div>
+              <div class="input-stack">
+                <ngx-switch onLabel="Enabled" offLabel="Disabled" size="sm" (checkedChange)="switchSmall.set($event)" />
+                <ngx-switch onLabel="On" offLabel="Off" size="md" (checkedChange)="switchMedium.set($event)" />
+                <ngx-switch onLabel="Active" offLabel="Inactive" size="lg" (checkedChange)="switchLarge.set($event)" />
+              </div>
+              <div class="value-display">sm: {{ switchSmall() }} · md: {{ switchMedium() }} · lg: {{ switchLarge() }}</div>
+            </div>
+          </div>
+
+          <div class="section-label">How to Use</div>
+          <pre class="code-block">{{ switchCode }}</pre>
+
+          <div class="section-label">API Reference</div>
+          <div class="api-table-wrap">
+            <table class="api-table">
+              <thead><tr><th>Input / Output</th><th>Type</th><th>Default</th><th>Description</th></tr></thead>
+              <tbody>
+                @for (row of switchApi; track row.name) {
+                  <tr><td class="api-name">{{ row.name }}</td><td class="api-type">{{ row.type }}</td><td class="api-default">{{ row.default }}</td><td>{{ row.description }}</td></tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </div>
+      }
+
+      <!-- ===== RATING ===== -->
+      @if (activeTab() === 'Rating') {
+        <div class="tab-content">
+          <div class="section-label">Live Demo</div>
+          <div class="demo-cards-grid">
+            <div class="demo-card">
+              <div class="demo-card-title">Interactive Rating</div>
+              <ngx-rating label="Product Rating" [max]="5" [showValue]="true" (ratingChange)="ratingValue.set($event)" />
+              <div class="value-display">Selected rating: {{ ratingValue() }}/5</div>
+            </div>
+          </div>
+
+          <div class="section-label">How to Use</div>
+          <pre class="code-block">{{ ratingCode }}</pre>
+
+          <div class="section-label">API Reference</div>
+          <div class="api-table-wrap">
+            <table class="api-table">
+              <thead><tr><th>Input / Output</th><th>Type</th><th>Default</th><th>Description</th></tr></thead>
+              <tbody>
+                @for (row of ratingApi; track row.name) {
+                  <tr><td class="api-name">{{ row.name }}</td><td class="api-type">{{ row.type }}</td><td class="api-default">{{ row.default }}</td><td>{{ row.description }}</td></tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </div>
+      }
+
+      <!-- ===== NUMERIC TEXTBOX ===== -->
+      @if (activeTab() === 'NumericTextBox') {
+        <div class="tab-content">
+          <div class="section-label">Live Demo</div>
+          <div class="demo-cards-grid">
+            <div class="demo-card">
+              <div class="demo-card-title">Numeric Inputs</div>
+              <div class="input-stack">
+                <ngx-numeric-textbox label="Quantity" [min]="0" [max]="100" [step]="1" (valueChange)="quantity.set($event)" />
+                <ngx-numeric-textbox label="Price" prefix="$" [min]="0" [max]="10000" [step]="0.5" (valueChange)="price.set($event)" />
+              </div>
+              <div class="value-display">Quantity: {{ quantity() }} · Price: &#36;{{ price() }}</div>
+            </div>
+          </div>
+
+          <div class="section-label">How to Use</div>
+          <pre class="code-block">{{ numericTextBoxCode }}</pre>
+
+          <div class="section-label">API Reference</div>
+          <div class="api-table-wrap">
+            <table class="api-table">
+              <thead><tr><th>Input / Output</th><th>Type</th><th>Default</th><th>Description</th></tr></thead>
+              <tbody>
+                @for (row of numericTextBoxApi; track row.name) {
+                  <tr><td class="api-name">{{ row.name }}</td><td class="api-type">{{ row.type }}</td><td class="api-default">{{ row.default }}</td><td>{{ row.description }}</td></tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </div>
+      }
+
+      <!-- ===== TEXTAREA ===== -->
+      @if (activeTab() === 'Textarea') {
+        <div class="tab-content">
+          <div class="section-label">Live Demo</div>
+          <div class="demo-cards-grid">
+            <div class="demo-card">
+              <div class="demo-card-title">Multi-line Input</div>
+              <ngx-textarea label="Description" placeholder="Write details..." [rows]="5" [maxlength]="280" hint="Supports markdown text" (valueChange)="description.set($event)" />
+              <div class="value-display">Characters: {{ description().length }}</div>
+            </div>
+          </div>
+
+          <div class="section-label">How to Use</div>
+          <pre class="code-block">{{ textareaCode }}</pre>
+
+          <div class="section-label">API Reference</div>
+          <div class="api-table-wrap">
+            <table class="api-table">
+              <thead><tr><th>Input / Output</th><th>Type</th><th>Default</th><th>Description</th></tr></thead>
+              <tbody>
+                @for (row of textareaApi; track row.name) {
+                  <tr><td class="api-name">{{ row.name }}</td><td class="api-type">{{ row.type }}</td><td class="api-default">{{ row.default }}</td><td>{{ row.description }}</td></tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </div>
+      }
+
+      <!-- ===== COLOR PICKER ===== -->
+      @if (activeTab() === 'ColorPicker') {
+        <div class="tab-content">
+          <div class="section-label">Live Demo</div>
+          <div class="demo-cards-grid">
+            <div class="demo-card">
+              <div class="demo-card-title">Theme Color</div>
+              <ngx-color-picker label="Accent Color" (colorChange)="accentColor.set($event)" />
+              <div class="value-display">Selected color: {{ accentColor() }}</div>
+            </div>
+          </div>
+
+          <div class="section-label">How to Use</div>
+          <pre class="code-block">{{ colorPickerCode }}</pre>
+
+          <div class="section-label">API Reference</div>
+          <div class="api-table-wrap">
+            <table class="api-table">
+              <thead><tr><th>Input / Output</th><th>Type</th><th>Default</th><th>Description</th></tr></thead>
+              <tbody>
+                @for (row of colorPickerApi; track row.name) {
+                  <tr><td class="api-name">{{ row.name }}</td><td class="api-type">{{ row.type }}</td><td class="api-default">{{ row.default }}</td><td>{{ row.description }}</td></tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </div>
+      }
+
+      <!-- ===== TIME PICKER ===== -->
+      @if (activeTab() === 'TimePicker') {
+        <div class="tab-content">
+          <div class="section-label">Live Demo</div>
+          <div class="demo-cards-grid">
+            <div class="demo-card">
+              <div class="demo-card-title">Meeting Time</div>
+              <ngx-time-picker label="24h Time" (timeChange)="time24.set($event)" />
+              <div class="value-display">Time: {{ time24() }}</div>
+            </div>
+            <div class="demo-card">
+              <div class="demo-card-title">12h Format</div>
+              <ngx-time-picker label="12h Time" [use12h]="true" (timeChange)="time12.set($event)" />
+              <div class="value-display">Time: {{ time12() }}</div>
+            </div>
+          </div>
+
+          <div class="section-label">How to Use</div>
+          <pre class="code-block">{{ timePickerCode }}</pre>
+
+          <div class="section-label">API Reference</div>
+          <div class="api-table-wrap">
+            <table class="api-table">
+              <thead><tr><th>Input / Output</th><th>Type</th><th>Default</th><th>Description</th></tr></thead>
+              <tbody>
+                @for (row of timePickerApi; track row.name) {
+                  <tr><td class="api-name">{{ row.name }}</td><td class="api-type">{{ row.type }}</td><td class="api-default">{{ row.default }}</td><td>{{ row.description }}</td></tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </div>
+      }
+
+      <!-- ===== DATE RANGE PICKER ===== -->
+      @if (activeTab() === 'DateRangePicker') {
+        <div class="tab-content">
+          <div class="section-label">Live Demo</div>
+          <div class="demo-cards-grid">
+            <div class="demo-card">
+              <div class="demo-card-title">Date Range Selection</div>
+              <ngx-date-range-picker label="Travel Dates" (rangeChange)="selectedRange.set($event)" />
+              <div class="value-display">Start: {{ selectedRange().start || '—' }} · End: {{ selectedRange().end || '—' }}</div>
+            </div>
+          </div>
+
+          <div class="section-label">How to Use</div>
+          <pre class="code-block">{{ dateRangePickerCode }}</pre>
+
+          <div class="section-label">API Reference</div>
+          <div class="api-table-wrap">
+            <table class="api-table">
+              <thead><tr><th>Input / Output</th><th>Type</th><th>Default</th><th>Description</th></tr></thead>
+              <tbody>
+                @for (row of dateRangePickerApi; track row.name) {
+                  <tr><td class="api-name">{{ row.name }}</td><td class="api-type">{{ row.type }}</td><td class="api-default">{{ row.default }}</td><td>{{ row.description }}</td></tr>
+                }
+              </tbody>
+            </table>
+          </div>
         </div>
       }
 
     </div>
   `,
   styles: [`
-    :host { display: flex; flex-direction: column; height: 100%; overflow-y: auto; }
-    .demo-page { padding: 24px 28px; max-width: 1100px; display: flex; flex-direction: column; gap: 20px; }
-    .page-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; padding-bottom: 16px; border-bottom: 1px solid #e9ecef; }
-    .page-header-text h1 { margin: 0 0 6px; font-size: 24px; font-weight: 800; color: #1a1a2e; }
-    .page-header-text p { margin: 0; font-size: 13px; color: #6c757d; line-height: 1.6; max-width: 600px; }
-    .header-badges { display: flex; gap: 8px; flex-shrink: 0; }
-    .badge { font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 12px; }
-    .badge-green { background: #dcfce7; color: #166534; }
-    .badge-blue { background: #e8f0fe; color: #1a73e8; }
-    .badge-purple { background: #f3e8ff; color: #7c3aed; }
-    .tab-nav { display: flex; gap: 2px; border-bottom: 2px solid #e9ecef; }
-    .tab-btn { padding: 8px 18px; background: none; border: none; font-size: 13px; font-weight: 500; color: #6c757d; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; font-family: inherit; transition: all 0.12s; }
-    .tab-btn:hover { color: #1a1a2e; }
-    .tab-btn.active { color: #1a73e8; border-bottom-color: #1a73e8; font-weight: 600; }
-    .tab-content { display: flex; flex-direction: column; gap: 16px; }
-    .section-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: #adb5bd; border-bottom: 1px solid #f1f3f5; padding-bottom: 6px; }
-    .demo-cards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 16px; }
-    .demo-card { background: #fff; border: 1px solid #e9ecef; border-radius: 8px; padding: 20px; }
-    .demo-card-title { font-size: 12px; font-weight: 600; color: #6c757d; text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 14px; }
-    .input-stack { display: flex; flex-direction: column; gap: 12px; }
-    .value-display { margin-top: 14px; padding: 8px 12px; background: #f8f9fa; border-radius: 4px; font-size: 12px; font-family: monospace; color: #495057; }
-    .code-block { background: #1e1e1e; color: #d4d4d4; padding: 20px; border-radius: 8px; font-size: 12px; font-family: 'Cascadia Code', Consolas, monospace; overflow-x: auto; white-space: pre; margin: 0; }
-    .api-table-wrap { overflow-x: auto; border: 1px solid #e9ecef; border-radius: 8px; }
+    :host { display: flex; flex-direction: column; height: 100%; overflow-y: auto; background: linear-gradient(135deg, #f8f9fc 0%, #f0f3f8 100%); }
+    .demo-page { padding: 32px 40px; max-width: 1200px; margin: 0 auto; width: 100%; display: flex; flex-direction: column; gap: 28px; }
+    
+    .page-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; padding-bottom: 24px; border-bottom: 2px solid rgba(230, 230, 245, 0.6); }
+    .page-header-text h1 { margin: 0 0 8px; font-size: 28px; font-weight: 900; color: #1a1a2e; letter-spacing: -0.5px; }
+    .page-header-text p { margin: 0; font-size: 14px; color: #6c757d; line-height: 1.7; max-width: 600px; }
+    
+    .header-badges { display: flex; gap: 10px; flex-shrink: 0; flex-wrap: wrap; }
+    .badge { font-size: 11px; font-weight: 700; padding: 6px 12px; border-radius: 16px; transition: all 0.2s ease; }
+    .badge-green { background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%); color: #166534; border: 1px solid rgba(22, 101, 52, 0.1); }
+    .badge-blue { background: linear-gradient(135deg, #e8f0fe 0%, #d1e3ff 100%); color: #1a73e8; border: 1px solid rgba(26, 115, 232, 0.1); }
+    .badge-purple { background: linear-gradient(135deg, #f3e8ff 0%, #e9d5ff 100%); color: #7c3aed; border: 1px solid rgba(124, 58, 237, 0.1); }
+    .badge:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08); }
+    
+    .tab-nav { display: flex; gap: 0; border-bottom: 2px solid #e9ecef; overflow-x: auto; padding-bottom: 0; }
+    .tab-btn { padding: 12px 20px; background: none; border: none; font-size: 13px; font-weight: 500; color: #6c757d; cursor: pointer; border-bottom: 3px solid transparent; margin-bottom: -2px; font-family: inherit; transition: all 0.2s ease; white-space: nowrap; }
+    .tab-btn:hover { color: #495057; background: rgba(26, 115, 232, 0.05); }
+    .tab-btn.active { color: #1a73e8; border-bottom-color: #1a73e8; font-weight: 600; background: rgba(26, 115, 232, 0.04); }
+    
+    .component-selector { display: flex; flex-direction: column; gap: 16px; background: linear-gradient(135deg, rgba(26, 115, 232, 0.05) 0%, rgba(124, 58, 237, 0.05) 100%); border: 2px solid #e0e5ed; border-radius: 12px; padding: 24px; }
+    .selector-label { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 1.2px; color: #495057; }
+    .selector-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 12px; }
+    .selector-btn { padding: 12px 16px; background: #fff; border: 2px solid #d0d8e4; border-radius: 8px; cursor: pointer; font-size: 12px; font-weight: 600; color: #495057; transition: all 0.2s ease; font-family: inherit; display: flex; align-items: center; justify-content: center; min-height: 48px; white-space: normal; text-align: center; }
+    .selector-btn:hover { border-color: #1a73e8; background: rgba(26, 115, 232, 0.05); color: #1a73e8; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(26, 115, 232, 0.15); }
+    .selector-btn.active { background: linear-gradient(135deg, #1a73e8 0%, #1765d0 100%); color: #fff; border-color: #1a73e8; box-shadow: 0 8px 20px rgba(26, 115, 232, 0.3); }
+    .selector-btn.active:hover { transform: translateY(-4px); box-shadow: 0 12px 28px rgba(26, 115, 232, 0.35); }
+    .btn-label { display: block; font-weight: 700; letter-spacing: 0.3px; }
+    
+    .tab-nav { display: flex; gap: 0; border-bottom: 2px solid #e9ecef; overflow-x: auto; padding-bottom: 0; }
+    .tab-btn { padding: 12px 20px; background: none; border: none; font-size: 13px; font-weight: 500; color: #6c757d; cursor: pointer; border-bottom: 3px solid transparent; margin-bottom: -2px; font-family: inherit; transition: all 0.2s ease; white-space: nowrap; }
+    .tab-btn:hover { color: #495057; background: rgba(26, 115, 232, 0.05); }
+    .tab-btn.active { color: #1a73e8; border-bottom-color: #1a73e8; font-weight: 600; background: rgba(26, 115, 232, 0.04); }
+    
+    .tab-content { display: flex; flex-direction: column; gap: 20px; }
+    .section-label { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 1.2px; color: #8892a0; border-bottom: 2px solid #e9ecef; padding-bottom: 12px; }
+    
+    .demo-cards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 20px; }
+    .demo-card { background: #fff; border: 1px solid #e0e5ed; border-radius: 12px; padding: 24px; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08); position: relative; overflow: hidden; }
+    .demo-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: linear-gradient(90deg, #1a73e8, #8ab4f8); opacity: 0; transition: opacity 0.3s ease; }
+    .demo-card:hover { border-color: #d0d8e4; box-shadow: 0 12px 24px rgba(0, 0, 0, 0.12); transform: translateY(-4px); }
+    .demo-card:hover::before { opacity: 1; }
+    
+    .demo-card-title { font-size: 12px; font-weight: 700; color: #495057; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+    .demo-card-title::before { content: ''; display: inline-block; width: 3px; height: 16px; background: linear-gradient(180deg, #1a73e8, #8ab4f8); border-radius: 2px; }
+    
+    .input-stack { display: flex; flex-direction: column; gap: 14px; }
+    
+    .value-display { margin-top: 14px; padding: 12px 14px; background: linear-gradient(135deg, #f8f9fa 0%, #f3f5f9 100%); border-radius: 6px; font-size: 12px; font-family: 'Courier New', monospace; color: #495057; border-left: 3px solid #1a73e8; transition: all 0.2s ease; }
+    .value-display:hover { border-left-color: #ff6b6b; transform: translateX(2px); }
+    
+    .code-block { background: #1e1e1e; color: #d4d4d4; padding: 20px; border-radius: 8px; font-size: 12px; font-family: 'Cascadia Code', Consolas, monospace; overflow-x: auto; white-space: pre; margin: 0; border: 1px solid #2d2d2d; }
+    
+    .api-table-wrap { overflow-x: auto; border: 1px solid #e9ecef; border-radius: 10px; margin-top: 12px; }
     .api-table { width: 100%; border-collapse: collapse; font-size: 13px; }
-    .api-table thead tr { background: #f8f9fa; }
-    .api-table th { padding: 10px 14px; text-align: left; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; color: #6c757d; border-bottom: 1px solid #e9ecef; white-space: nowrap; }
-    .api-table td { padding: 10px 14px; border-bottom: 1px solid #f1f3f5; color: #495057; vertical-align: top; }
-    .api-table tbody tr:last-child td { border-bottom: none; }
+    .api-table thead tr { background: linear-gradient(135deg, #f8f9fa 0%, #f3f5f9 100%); }
+    .api-table th { padding: 12px 16px; text-align: left; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.7px; color: #495057; border-bottom: 2px solid #e9ecef; white-space: nowrap; }
+    .api-table td { padding: 12px 16px; border-bottom: 1px solid #f1f3f5; color: #495057; vertical-align: top; }
+    .api-table tbody tr { transition: background 0.2s ease; }
     .api-table tbody tr:hover td { background: #f8f9fa; }
-    .api-name { color: #1a73e8 !important; font-family: monospace; font-weight: 600; white-space: nowrap; }
+    .api-table tbody tr:last-child td { border-bottom: none; }
+    
+    .api-name { color: #1a73e8 !important; font-family: monospace; font-weight: 700; white-space: nowrap; }
     .api-type { color: #8e44ad !important; font-family: monospace; white-space: nowrap; }
-    .api-default { font-family: monospace; white-space: nowrap; }
+    .api-default { font-family: monospace; white-space: nowrap; color: #ff6b6b; font-weight: 500; }
+    
+    @media (max-width: 768px) {
+      .demo-page { padding: 20px 16px; gap: 20px; }
+      .demo-cards-grid { grid-template-columns: 1fr; }
+      .page-header { flex-direction: column; gap: 12px; }
+      .selector-grid { grid-template-columns: repeat(auto-fill, minmax(95px, 1fr)); gap: 10px; }
+      .component-selector { padding: 16px; gap: 12px; }
+      .selector-btn { padding: 10px 12px; min-height: 44px; font-size: 11px; }
+      .tab-nav { font-size: 12px; }
+      .tab-btn { padding: 10px 14px; }
+    }
   `]
 })
 export class InputsDemoComponent {
   activeTab = signal('TextBox');
-  tabs = ['TextBox', 'Dropdown', 'DatePicker', 'MultiSelect', 'Checkbox', 'Radio', 'Autocomplete'];
+  tabs = ['TextBox', 'Dropdown', 'DatePicker', 'MultiSelect', 'Checkbox', 'Radio', 'Autocomplete', 'Slider', 'Switch', 'Rating', 'NumericTextBox', 'Textarea', 'ColorPicker', 'TimePicker', 'DateRangePicker'];
 
   textValue = signal('');
   emailValue = signal('');
@@ -338,6 +674,20 @@ export class InputsDemoComponent {
   // Autocomplete state
   selectedFramework = signal('');
   selectedAcCountry = signal('');
+
+  sliderValue = signal(0);
+  priceRange = signal<[number, number]>([20, 80]);
+  switchSmall = signal(false);
+  switchMedium = signal(false);
+  switchLarge = signal(false);
+  ratingValue = signal(0);
+  quantity = signal(0);
+  price = signal(0);
+  description = signal('');
+  accentColor = signal('#1a73e8');
+  time24 = signal('');
+  time12 = signal('');
+  selectedRange = signal<{ start: string; end: string }>({ start: '', end: '' });
 
   countries: DropdownOption[] = [
     { label: 'United States', value: 'us' },
@@ -595,6 +945,33 @@ export class MyComponent {
     { name: '(valuesChange)', type: 'unknown[]', default: '—', description: 'Emitted when the selection changes. Contains full array of selected values.' },
   ];
 
+  checkboxApi: ApiRow[] = [
+    { name: 'label', type: 'string', default: "''", description: 'Label text rendered next to the checkbox.' },
+    { name: 'checked', type: 'boolean', default: 'false', description: 'Initial checked state in template-driven usage.' },
+    { name: 'disabled', type: 'boolean', default: 'false', description: 'Disables interaction.' },
+    { name: 'indeterminate', type: 'boolean', default: 'false', description: 'Renders the indeterminate visual state.' },
+    { name: '(checkedChange)', type: 'boolean', default: '—', description: 'Emitted when the checked state toggles.' },
+  ];
+
+  radioApi: ApiRow[] = [
+    { name: 'options', type: 'RadioOption[]', default: '[]', description: 'Array of radio options with label, value, and optional disabled state.' },
+    { name: 'label', type: 'string', default: "''", description: 'Group label shown above the options.' },
+    { name: 'value', type: 'unknown', default: 'null', description: 'Current selected value.' },
+    { name: 'disabled', type: 'boolean', default: 'false', description: 'Disables the full radio group.' },
+    { name: 'inline', type: 'boolean', default: 'false', description: 'Displays options horizontally instead of stacked.' },
+    { name: '(valueChange)', type: 'unknown', default: '—', description: 'Emitted when the selected option changes.' },
+  ];
+
+  autocompleteApi: ApiRow[] = [
+    { name: 'options', type: 'DropdownOption[]', default: '[]', description: 'Available options to search and select.' },
+    { name: 'label', type: 'string', default: "''", description: 'Label displayed above the input.' },
+    { name: 'placeholder', type: 'string', default: "'Type to search...'", description: 'Placeholder text inside the input.' },
+    { name: 'disabled', type: 'boolean', default: 'false', description: 'Disables typing and selection.' },
+    { name: 'error', type: 'string', default: "''", description: 'Error text shown below the component.' },
+    { name: 'minLength', type: 'number', default: '1', description: 'Minimum typed characters before the suggestion panel opens.' },
+    { name: '(valueChange)', type: 'unknown', default: '—', description: 'Emitted when an option is selected or cleared.' },
+  ];
+
   checkboxCode = `import { CheckboxComponent } from 'ngx-core-components';
 
 @Component({
@@ -639,6 +1016,225 @@ export class MyComponent {
   selected = signal('');
   frameworks = ['Angular', 'React', 'Vue.js', 'Svelte'];
 }`;
+
+  sliderCode = `import { SliderComponent } from 'ngx-core-components/inputs';
+
+@Component({
+  imports: [SliderComponent],
+  template: \`
+    <!-- Single value -->
+    <ngx-slider
+      label="Volume"
+      [min]="0"
+      [max]="100"
+      [step]="1"
+      [showTicks]="true"
+      (valueChange)="volume.set($event)"
+    />
+
+    <!-- Range mode: two thumbs on one track -->
+    <ngx-slider
+      label="Price Range"
+      [min]="0"
+      [max]="1000"
+      [step]="10"
+      [range]="true"
+      [showValue]="true"
+      (rangeChange)="priceRange.set($event)"
+    />
+  \`
+})
+export class MyComponent {
+  volume = signal(40);
+  priceRange = signal<[number, number]>([150, 700]);
+}`;
+
+  switchCode = `import { SwitchComponent } from 'ngx-core-components/inputs';
+
+@Component({
+  imports: [SwitchComponent],
+  template: \`
+    <ngx-switch
+      onLabel="Enabled"
+      offLabel="Disabled"
+      size="md"
+      [checked]="enabled()"
+      (checkedChange)="enabled.set($event)"
+    />
+  \`
+})
+export class MyComponent {
+  enabled = signal(false);
+}`;
+
+  ratingCode = `import { RatingComponent } from 'ngx-core-components/inputs';
+
+@Component({
+  imports: [RatingComponent],
+  template: \`
+    <ngx-rating
+      label="Product Rating"
+      [max]="5"
+      [showValue]="true"
+      (ratingChange)="rating.set($event)"
+    />
+  \`
+})
+export class MyComponent {
+  rating = signal(0);
+}`;
+
+  numericTextBoxCode = `import { NumericTextBoxComponent } from 'ngx-core-components/inputs';
+
+@Component({
+  imports: [NumericTextBoxComponent],
+  template: \`
+    <ngx-numeric-textbox
+      label="Quantity"
+      [min]="0"
+      [max]="100"
+      [step]="1"
+      (valueChange)="quantity.set($event)"
+    />
+  \`
+})
+export class MyComponent {
+  quantity = signal(1);
+}`;
+
+  textareaCode = `import { TextareaComponent } from 'ngx-core-components/inputs';
+
+@Component({
+  imports: [TextareaComponent],
+  template: \`
+    <ngx-textarea
+      label="Description"
+      [rows]="5"
+      [maxlength]="280"
+      hint="Supports markdown text"
+      (valueChange)="description.set($event)"
+    />
+  \`
+})
+export class MyComponent {
+  description = signal('');
+}`;
+
+  colorPickerCode = `import { ColorPickerComponent } from 'ngx-core-components/inputs';
+
+@Component({
+  imports: [ColorPickerComponent],
+  template: \`
+    <ngx-color-picker
+      label="Accent Color"
+      [value]="color()"
+      (colorChange)="color.set($event)"
+    />
+  \`
+})
+export class MyComponent {
+  color = signal('#1a73e8');
+}`;
+
+  timePickerCode = `import { TimePickerComponent } from 'ngx-core-components/inputs';
+
+@Component({
+  imports: [TimePickerComponent],
+  template: \`
+    <ngx-time-picker
+      label="Meeting Time"
+      [use12h]="true"
+      (timeChange)="time.set($event)"
+    />
+  \`
+})
+export class MyComponent {
+  time = signal('');
+}`;
+
+  dateRangePickerCode = `import { DateRangePickerComponent } from 'ngx-core-components/inputs';
+
+@Component({
+  imports: [DateRangePickerComponent],
+  template: \`
+    <ngx-date-range-picker
+      label="Travel Dates"
+      (rangeChange)="range.set($event)"
+    />
+  \`
+})
+export class MyComponent {
+  range = signal<{ start: string; end: string }>({ start: '', end: '' });
+}`;
+
+  sliderApi: ApiRow[] = [
+    { name: 'label', type: 'string', default: "''", description: 'Label text displayed above the slider.' },
+    { name: 'min', type: 'number', default: '0', description: 'Minimum selectable value.' },
+    { name: 'max', type: 'number', default: '100', description: 'Maximum selectable value.' },
+    { name: 'step', type: 'number', default: '1', description: 'Step interval for the thumb movement.' },
+    { name: 'range', type: 'boolean', default: 'false', description: 'When true, renders dual thumbs on a single track for range selection.' },
+    { name: 'disabled', type: 'boolean', default: 'false', description: 'Disables user interaction.' },
+    { name: 'showValue', type: 'boolean', default: 'true', description: 'Shows current value or low-high range in the label row.' },
+    { name: 'showTicks', type: 'boolean', default: 'false', description: 'Displays min/max tick labels below the track.' },
+    { name: '(valueChange)', type: 'number', default: '—', description: 'Emitted when single-value mode changes.' },
+    { name: '(rangeChange)', type: '[number, number]', default: '—', description: 'Emitted when range mode changes as [low, high].' },
+  ];
+
+  switchApi: ApiRow[] = [
+    { name: 'onLabel', type: 'string', default: "'On'", description: 'Text shown for the enabled state.' },
+    { name: 'offLabel', type: 'string', default: "'Off'", description: 'Text shown for the disabled state.' },
+    { name: 'size', type: "'sm'|'md'|'lg'", default: "'md'", description: 'Visual size of the switch.' },
+    { name: 'disabled', type: 'boolean', default: 'false', description: 'Disables clicking the switch.' },
+    { name: '(checkedChange)', type: 'boolean', default: '—', description: 'Emitted when the switch toggles.' },
+  ];
+
+  ratingApi: ApiRow[] = [
+    { name: 'max', type: 'number', default: '5', description: 'Number of rating stars to render.' },
+    { name: 'label', type: 'string', default: "''", description: 'Label shown before the stars.' },
+    { name: 'readonly', type: 'boolean', default: 'false', description: 'Prevents the user from changing the rating.' },
+    { name: 'showValue', type: 'boolean', default: 'false', description: 'Shows the numeric rating value next to the stars.' },
+    { name: '(ratingChange)', type: 'number', default: '—', description: 'Emitted when the selected rating changes.' },
+  ];
+
+  numericTextBoxApi: ApiRow[] = [
+    { name: 'label', type: 'string', default: "''", description: 'Label text shown above the numeric input.' },
+    { name: 'min', type: 'number', default: '-Infinity', description: 'Minimum allowed value.' },
+    { name: 'max', type: 'number', default: 'Infinity', description: 'Maximum allowed value.' },
+    { name: 'step', type: 'number', default: '1', description: 'Increment or decrement amount.' },
+    { name: 'disabled', type: 'boolean', default: 'false', description: 'Disables text entry and spinner buttons.' },
+    { name: 'placeholder', type: 'string', default: "''", description: 'Placeholder text when empty.' },
+    { name: 'prefix', type: 'string', default: "''", description: 'Text shown before the numeric input.' },
+    { name: 'suffix', type: 'string', default: "''", description: 'Text shown after the numeric input.' },
+    { name: '(valueChange)', type: 'number', default: '—', description: 'Emitted when the value changes through typing or spin buttons.' },
+  ];
+
+  textareaApi: ApiRow[] = [
+    { name: 'label', type: 'string', default: "''", description: 'Label displayed above the textarea.' },
+    { name: 'placeholder', type: 'string', default: "''", description: 'Placeholder text when empty.' },
+    { name: 'rows', type: 'number', default: '4', description: 'Initial visible textarea rows.' },
+    { name: 'maxlength', type: 'number', default: '0', description: 'Maximum characters allowed. 0 disables the limit.' },
+    { name: 'disabled', type: 'boolean', default: 'false', description: 'Disables typing.' },
+    { name: 'autoResize', type: 'boolean', default: 'false', description: 'Marks the textarea for auto-resize styling behavior.' },
+    { name: 'hint', type: 'string', default: "''", description: 'Helper text shown below the textarea.' },
+    { name: 'error', type: 'string', default: "''", description: 'Error text shown instead of the hint.' },
+    { name: '(valueChange)', type: 'string', default: '—', description: 'Emitted whenever the text changes.' },
+  ];
+
+  colorPickerApi: ApiRow[] = [
+    { name: 'label', type: 'string', default: "''", description: 'Label shown above the color picker trigger.' },
+    { name: '(colorChange)', type: 'string', default: '—', description: 'Emitted with the selected hex color value.' },
+  ];
+
+  timePickerApi: ApiRow[] = [
+    { name: 'label', type: 'string', default: "''", description: 'Label shown above the time picker.' },
+    { name: 'use12h', type: 'boolean', default: 'false', description: 'Uses 12-hour display with AM/PM selector.' },
+    { name: '(timeChange)', type: 'string', default: '—', description: 'Emitted with the selected time as HH:mm.' },
+  ];
+
+  dateRangePickerApi: ApiRow[] = [
+    { name: 'label', type: 'string', default: "''", description: 'Label shown above the range picker.' },
+    { name: '(rangeChange)', type: '{ start: string; end: string }', default: '—', description: 'Emitted when a full date range is selected.' },
+  ];
 
   inputCssVars: { name: string; default: string; description: string }[] = [
     { name: '--ngx-input-border', default: '#ced4da', description: 'Default border color.' },

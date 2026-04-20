@@ -24,3 +24,27 @@ export { AutocompleteComponent } from './autocomplete/autocomplete.component';
 
 // Date Picker
 export { DatePickerComponent } from './date-picker/date-picker.component';
+
+// Slider
+export { SliderComponent } from './slider/slider.component';
+
+// Switch / Toggle
+export { SwitchComponent } from './switch/switch.component';
+
+// Star Rating
+export { RatingComponent } from './rating/rating.component';
+
+// Numeric TextBox
+export { NumericTextBoxComponent } from './numeric-textbox/numeric-textbox.component';
+
+// Textarea
+export { TextareaComponent } from './textarea/textarea.component';
+
+// Color Picker
+export { ColorPickerComponent } from './color-picker/color-picker.component';
+
+// Time Picker
+export { TimePickerComponent } from './time-picker/time-picker.component';
+
+// Date Range Picker
+export { DateRangePickerComponent } from './date-range-picker/date-range-picker.component';

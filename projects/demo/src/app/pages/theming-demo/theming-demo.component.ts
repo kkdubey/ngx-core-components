@@ -11,6 +11,7 @@ import { getSampleTasks, getSampleDependencies } from '../../data/sample-tasks';
 
 interface CssVar { name: string; value: string; type: 'color' | 'text'; label: string; }
 interface ThemePreset { name: string; accent: string; vars: Record<string, string>; }
+interface ApiRow { name: string; type: string; default: string; description: string; }
 
 @Component({
   selector: 'app-theming-demo',
@@ -93,9 +94,14 @@ interface ThemePreset { name: string; accent: string; vars: Record<string, strin
             <div class="vars-title">CSS Custom Properties</div>
             @for (v of chartVars(); track v.name) {
               <div class="var-row">
-                <label class="var-name">{{ v.name }}</label>
-                <input type="color" class="color-swatch" [value]="v.value"
-                  (input)="updateVar('charts', v.name, $any($event.target).value)" />
+                <label class="var-name" [title]="v.name">{{ v.name }}</label>
+                @if (v.type === 'color') {
+                  <input type="color" class="color-swatch" [value]="v.value"
+                    (input)="updateVar('charts', v.name, $any($event.target).value)" />
+                } @else {
+                  <input type="text" class="text-swatch" [value]="v.value"
+                    (change)="updateVar('charts', v.name, $any($event.target).value)" />
+                }
                 <span class="var-val">{{ v.value }}</span>
               </div>
             }
@@ -104,8 +110,9 @@ interface ThemePreset { name: string; accent: string; vars: Record<string, strin
               <pre class="mini-code">ngx-bar-chart, ngx-line-chart,
 ngx-pie-chart, ngx-sparkline &#123;
   --ngx-chart-bg: #ffffff;
-  --ngx-chart-grid: #e9ecef;
+  --ngx-chart-axis: #ced4da;
   --ngx-chart-axis-text: #6c757d;
+  --ngx-chart-grid: #e9ecef;
   --ngx-chart-tooltip-bg: #1e1e1e;
 &#125;</pre>
             </div>
@@ -133,21 +140,30 @@ ngx-pie-chart, ngx-sparkline &#123;
             <div class="vars-title">CSS Custom Properties</div>
             @for (v of inputVars(); track v.name) {
               <div class="var-row">
-                <label class="var-name">{{ v.name }}</label>
-                <input type="color" class="color-swatch" [value]="v.value"
-                  (input)="updateVar('inputs', v.name, $any($event.target).value)" />
+                <label class="var-name" [title]="v.name">{{ v.name }}</label>
+                @if (v.type === 'color') {
+                  <input type="color" class="color-swatch" [value]="v.value"
+                    (input)="updateVar('inputs', v.name, $any($event.target).value)" />
+                } @else {
+                  <input type="text" class="text-swatch" [value]="v.value"
+                    (change)="updateVar('inputs', v.name, $any($event.target).value)" />
+                }
                 <span class="var-val">{{ v.value }}</span>
               </div>
             }
             <div class="vars-usage">
               <div class="usage-title">Usage</div>
               <pre class="mini-code">ngx-textbox, ngx-dropdown,
-ngx-date-picker, ngx-multi-select &#123;
+ngx-date-picker, ngx-multi-select,
+ngx-checkbox, ngx-radio-group,
+ngx-autocomplete &#123;
+  --ngx-input-bg: #ffffff;
   --ngx-input-border: #ced4da;
+  --ngx-input-text: #212529;
+  --ngx-input-label: #495057;
   --ngx-input-focus: #1a73e8;
   --ngx-input-error: #e74c3c;
-  --ngx-input-bg: #ffffff;
-  --ngx-input-label: #495057;
+  --ngx-input-radius: 4px;
 &#125;</pre>
             </div>
           </div>
@@ -167,7 +183,7 @@ ngx-date-picker, ngx-multi-select &#123;
             <div class="vars-title">CSS Custom Properties</div>
             @for (v of gridVars(); track v.name) {
               <div class="var-row">
-                <label class="var-name">{{ v.name }}</label>
+                <label class="var-name" [title]="v.name">{{ v.name }}</label>
                 <input type="color" class="color-swatch" [value]="v.value"
                   (input)="updateVar('grid', v.name, $any($event.target).value)" />
                 <span class="var-val">{{ v.value }}</span>
@@ -202,7 +218,7 @@ ngx-date-picker, ngx-multi-select &#123;
             <div class="vars-title">CSS Custom Properties</div>
             @for (v of treeVars(); track v.name) {
               <div class="var-row">
-                <label class="var-name">{{ v.name }}</label>
+                <label class="var-name" [title]="v.name">{{ v.name }}</label>
                 <input type="color" class="color-swatch" [value]="v.value"
                   (input)="updateVar('tree', v.name, $any($event.target).value)" />
                 <span class="var-val">{{ v.value }}</span>
@@ -253,7 +269,7 @@ ngx-list-view &#123;
             <div class="vars-title">CSS Custom Properties</div>
             @for (v of tooltipVars(); track v.name) {
               <div class="var-row">
-                <label class="var-name">{{ v.name }}</label>
+                <label class="var-name" [title]="v.name">{{ v.name }}</label>
                 <input type="color" class="color-swatch" [value]="v.value"
                   (input)="updateVar('tooltip', v.name, $any($event.target).value)" />
                 <span class="var-val">{{ v.value }}</span>
@@ -294,7 +310,7 @@ ngx-list-view &#123;
             <div class="vars-title">CSS Custom Properties</div>
             @for (v of ganttVars(); track v.name) {
               <div class="var-row">
-                <label class="var-name">{{ v.name }}</label>
+                <label class="var-name" [title]="v.name">{{ v.name }}</label>
                 <input type="color" class="color-swatch" [value]="v.value"
                   (input)="updateVar('gantt', v.name, $any($event.target).value)" />
                 <span class="var-val">{{ v.value }}</span>
@@ -303,6 +319,54 @@ ngx-list-view &#123;
           </div>
         </div>
       }
+
+      <!-- ===== GENERATED CSS OUTPUT ===== -->
+      <div class="css-output-panel">
+        <div class="css-output-header">
+          <div>
+            <div class="css-output-title">How to Use</div>
+            <div class="css-output-subtitle">1) Pick a preset or tweak variables in tabs, 2) copy the generated CSS, 3) paste it into <code>styles.scss</code> (global) or a scoped host selector.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="css-output-panel">
+        <div class="css-output-header">
+          <div>
+            <div class="css-output-title">API Reference</div>
+            <div class="css-output-subtitle">Theme groups map CSS variable prefixes to the component selectors shown in each tab.</div>
+          </div>
+        </div>
+        <div class="api-table-wrap">
+          <table class="api-table">
+            <thead><tr><th>Theme Group</th><th>Selectors</th><th>Primary Variables</th><th>Description</th></tr></thead>
+            <tbody>
+              @for (row of themeGroupApi; track row.name) {
+                <tr>
+                  <td class="api-name">{{ row.name }}</td>
+                  <td class="api-type">{{ row.type }}</td>
+                  <td class="api-default">{{ row.default }}</td>
+                  <td>{{ row.description }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ===== GENERATED CSS OUTPUT ===== -->
+      <div class="css-output-panel">
+        <div class="css-output-header">
+          <div>
+            <div class="css-output-title">Generated CSS</div>
+            <div class="css-output-subtitle">Copy this into your <code>styles.scss</code> or a theme file.</div>
+          </div>
+          <button class="copy-btn" [class.copied]="copied()" (click)="copyGeneratedCss()">
+            @if (copied()) { ✅ Copied! } @else { 📋 Copy CSS }
+          </button>
+        </div>
+        <pre class="css-output-code">{{ generatedCss() }}</pre>
+      </div>
 
     </div>
   `,
@@ -366,17 +430,48 @@ ngx-list-view &#123;
     .vars-panel { background: #fff; border: 1px solid #e9ecef; border-radius: 8px; overflow: hidden; }
     .var-row { display: flex; align-items: center; gap: 8px; padding: 7px 16px; border-bottom: 1px solid #f8f9fa; }
     .var-row:last-of-type { border-bottom: none; }
-    .var-name { font-size: 10px; font-family: monospace; color: #6c757d; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+    .var-name { font-size: 10px; font-family: monospace; color: #6c757d; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; cursor: help; }
     .color-swatch { width: 26px; height: 20px; border: 1px solid #dee2e6; border-radius: 3px; padding: 0; cursor: pointer; background: none; flex-shrink: 0; }
+    .text-swatch { width: 60px; height: 20px; border: 1px solid #dee2e6; border-radius: 3px; padding: 0 4px; font-size: 10px; font-family: monospace; flex-shrink: 0; background: #f8f9fa; color: #212529; }
     .var-val { font-size: 11px; font-family: monospace; color: #212529; flex-shrink: 0; width: 60px; text-align: right; }
     .vars-usage { padding: 12px 16px; border-top: 1px solid #f1f3f5; background: #fafbfc; }
     .usage-title { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; color: #adb5bd; margin-bottom: 8px; }
     .mini-code { margin: 0; background: #1e1e1e; color: #d4d4d4; padding: 12px; border-radius: 6px; font-size: 11px; font-family: monospace; white-space: pre; overflow-x: auto; }
+
+    /* Generated CSS output panel */
+    .css-output-panel { background: #fff; border: 1px solid #e9ecef; border-radius: 8px; overflow: hidden; }
+    .css-output-header { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border-bottom: 1px solid #f1f3f5; background: #fafbfc; gap: 12px; }
+    .css-output-title { font-size: 13px; font-weight: 700; color: #212529; }
+    .css-output-subtitle { font-size: 11px; color: #6c757d; margin-top: 2px; }
+    .css-output-subtitle code { background: #f1f3f5; padding: 1px 5px; border-radius: 3px; font-size: 11px; color: #e74c3c; }
+    .api-table-wrap { overflow-x: auto; }
+    .api-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .api-table thead tr { background: #f8f9fa; }
+    .api-table th { padding: 10px 14px; text-align: left; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; color: #6c757d; border-bottom: 1px solid #e9ecef; }
+    .api-table td { padding: 10px 14px; border-bottom: 1px solid #f1f3f5; color: #495057; vertical-align: top; }
+    .api-table tbody tr:last-child td { border-bottom: none; }
+    .api-name { color: #1a73e8; font-family: monospace; font-weight: 700; white-space: nowrap; }
+    .api-type { color: #8e44ad; font-family: monospace; }
+    .api-default { color: #ff6358; font-family: monospace; }
+    .copy-btn { display: flex; align-items: center; gap: 6px; padding: 7px 14px; background: #1a73e8; color: #fff; border: none; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; font-family: inherit; transition: background 0.15s; white-space: nowrap; flex-shrink: 0; }
+    .copy-btn:hover { background: #1557b0; }
+    .copy-btn.copied { background: #27ae60; }
+    .css-output-code { margin: 0; background: #1e2330; color: #a8d8a8; padding: 20px; font-size: 11px; font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace; white-space: pre; overflow-x: auto; max-height: 320px; overflow-y: auto; line-height: 1.7; }
   `]
 })
 export class ThemingDemoComponent {
   activeTab = signal('charts');
   activePreset = signal('Light');
+  copied = signal(false);
+
+  themeGroupApi: ApiRow[] = [
+    { name: 'Charts', type: 'ngx-bar-chart, ngx-line-chart, ngx-pie-chart, ngx-sparkline', default: '--ngx-chart-*', description: 'Controls chart background, axes, grid lines, and tooltip colors.' },
+    { name: 'Inputs', type: 'ngx-textbox, ngx-dropdown, ngx-date-picker, ngx-multi-select, ngx-checkbox, ngx-radio-group, ngx-autocomplete', default: '--ngx-input-*', description: 'Controls field surfaces, labels, focus states, hints, and validation colors.' },
+    { name: 'Data Grid', type: 'ngx-data-grid', default: '--ngx-grid-*', description: 'Controls header, borders, hover rows, selected rows, and stripe backgrounds.' },
+    { name: 'Tree & List', type: 'ngx-tree-view, ngx-list-view', default: '--ngx-tree-* / --ngx-list-*', description: 'Controls item hover, selected state, border, and text colors for hierarchical views.' },
+    { name: 'Tooltip & Popover', type: '[ngxTooltip], ngx-popover', default: '--ngx-tooltip-* / --ngx-popover-*', description: 'Controls overlay surfaces, borders, header backgrounds, and text colors.' },
+    { name: 'Gantt Chart', type: 'ngx-gantt-chart', default: '--ngx-gantt-*', description: 'Controls timeline background, bars, progress fill, grid lines, text, and today marker.' },
+  ];
 
   tabs = [
     { id: 'charts', label: 'Charts', icon: '📊' },
@@ -449,6 +544,30 @@ export class ThemingDemoComponent {
         '--ngx-gantt-bg': '#fff5f5', '--ngx-gantt-border': '#f5c6cb', '--ngx-gantt-bar-bg': '#e74c3c', '--ngx-gantt-bar-progress-bg': '#c0392b', '--ngx-gantt-header-bg': '#fde8e8', '--ngx-gantt-today-color': '#e74c3c', '--ngx-gantt-text': '#6c1020',
       }
     },
+    {
+      name: 'Violet',
+      accent: '#7c3aed',
+      vars: {
+        '--ngx-chart-bg': '#faf5ff', '--ngx-chart-grid': '#ddd6fe', '--ngx-chart-axis-text': '#4c1d95', '--ngx-chart-tooltip-bg': '#4c1d95',
+        '--ngx-input-border': '#ddd6fe', '--ngx-input-focus': '#7c3aed', '--ngx-input-error': '#dc2626', '--ngx-input-bg': '#faf5ff', '--ngx-input-label': '#4c1d95', '--ngx-input-hint': '#7e22ce',
+        '--ngx-grid-header-bg': '#ede9fe', '--ngx-grid-border': '#ddd6fe', '--ngx-grid-hover-bg': '#f5f3ff', '--ngx-grid-selected-bg': '#ede9fe', '--ngx-grid-stripe-bg': '#faf5ff',
+        '--ngx-tree-hover-bg': '#f5f3ff', '--ngx-tree-selected-bg': '#ede9fe', '--ngx-tree-selected-color': '#7c3aed', '--ngx-tree-border': '#ddd6fe',
+        '--ngx-tooltip-bg': '#4c1d95', '--ngx-tooltip-color': '#ffffff', '--ngx-popover-bg': '#faf5ff', '--ngx-popover-border': '#ddd6fe', '--ngx-popover-header-bg': '#ede9fe',
+        '--ngx-gantt-bg': '#faf5ff', '--ngx-gantt-border': '#ddd6fe', '--ngx-gantt-bar-bg': '#7c3aed', '--ngx-gantt-bar-progress-bg': '#5b21b6', '--ngx-gantt-header-bg': '#ede9fe', '--ngx-gantt-today-color': '#7c3aed', '--ngx-gantt-text': '#4c1d95',
+      }
+    },
+    {
+      name: 'Slate',
+      accent: '#475569',
+      vars: {
+        '--ngx-chart-bg': '#f8fafc', '--ngx-chart-grid': '#cbd5e1', '--ngx-chart-axis-text': '#475569', '--ngx-chart-tooltip-bg': '#1e293b',
+        '--ngx-input-border': '#cbd5e1', '--ngx-input-focus': '#475569', '--ngx-input-error': '#ef4444', '--ngx-input-bg': '#f8fafc', '--ngx-input-label': '#334155', '--ngx-input-hint': '#64748b',
+        '--ngx-grid-header-bg': '#e2e8f0', '--ngx-grid-border': '#cbd5e1', '--ngx-grid-hover-bg': '#f1f5f9', '--ngx-grid-selected-bg': '#dbeafe', '--ngx-grid-stripe-bg': '#f8fafc',
+        '--ngx-tree-hover-bg': '#f1f5f9', '--ngx-tree-selected-bg': '#dbeafe', '--ngx-tree-selected-color': '#3b82f6', '--ngx-tree-border': '#cbd5e1',
+        '--ngx-tooltip-bg': '#1e293b', '--ngx-tooltip-color': '#f8fafc', '--ngx-popover-bg': '#f8fafc', '--ngx-popover-border': '#cbd5e1', '--ngx-popover-header-bg': '#e2e8f0',
+        '--ngx-gantt-bg': '#f8fafc', '--ngx-gantt-border': '#cbd5e1', '--ngx-gantt-bar-bg': '#475569', '--ngx-gantt-bar-progress-bg': '#334155', '--ngx-gantt-header-bg': '#e2e8f0', '--ngx-gantt-today-color': '#3b82f6', '--ngx-gantt-text': '#1e293b',
+      }
+    },
   ];
 
   // Per-section reactive CSS var state
@@ -456,12 +575,18 @@ export class ThemingDemoComponent {
     this.buildInitialVars(this.presets[0].vars)
   );
 
-  chartVars = computed(() => this.getVarGroup(['--ngx-chart-bg', '--ngx-chart-grid', '--ngx-chart-axis-text', '--ngx-chart-tooltip-bg']));
-  inputVars = computed(() => this.getVarGroup(['--ngx-input-border', '--ngx-input-focus', '--ngx-input-error', '--ngx-input-bg', '--ngx-input-label', '--ngx-input-hint']));
-  gridVars  = computed(() => this.getVarGroup(['--ngx-grid-header-bg', '--ngx-grid-border', '--ngx-grid-hover-bg', '--ngx-grid-selected-bg', '--ngx-grid-stripe-bg']));
-  treeVars  = computed(() => this.getVarGroup(['--ngx-tree-hover-bg', '--ngx-tree-selected-bg', '--ngx-tree-selected-color', '--ngx-tree-border']));
-  tooltipVars = computed(() => this.getVarGroup(['--ngx-tooltip-bg', '--ngx-tooltip-color', '--ngx-popover-bg', '--ngx-popover-border', '--ngx-popover-header-bg']));
-  ganttVars = computed(() => this.getVarGroup(['--ngx-gantt-bg', '--ngx-gantt-border', '--ngx-gantt-bar-bg', '--ngx-gantt-bar-progress-bg', '--ngx-gantt-header-bg', '--ngx-gantt-today-color', '--ngx-gantt-text']));
+  chartVars = computed(() => this.getVarGroup(['--ngx-chart-bg', '--ngx-chart-grid', '--ngx-chart-axis', '--ngx-chart-axis-text', '--ngx-chart-tooltip-bg']));
+  inputVars = computed(() => this.getVarGroup(['--ngx-input-bg', '--ngx-input-border', '--ngx-input-text', '--ngx-input-label', '--ngx-input-hint', '--ngx-input-focus', '--ngx-input-error', '--ngx-input-radius']));
+  gridVars  = computed(() => this.getVarGroup(['--ngx-grid-bg', '--ngx-grid-header-bg', '--ngx-grid-border', '--ngx-grid-hover-bg', '--ngx-grid-selected-bg', '--ngx-grid-stripe-bg']));
+  treeVars  = computed(() => this.getVarGroup(['--ngx-tree-bg', '--ngx-tree-hover-bg', '--ngx-tree-selected-bg', '--ngx-tree-selected-color', '--ngx-tree-border', '--ngx-tree-text']));
+  tooltipVars = computed(() => this.getVarGroup(['--ngx-tooltip-bg', '--ngx-tooltip-color', '--ngx-popover-bg', '--ngx-popover-border', '--ngx-popover-header-bg', '--ngx-popover-radius']));
+  ganttVars = computed(() => this.getVarGroup(['--ngx-gantt-bg', '--ngx-gantt-border', '--ngx-gantt-text', '--ngx-gantt-bar-bg', '--ngx-gantt-bar-progress-bg', '--ngx-gantt-header-bg', '--ngx-gantt-grid-line', '--ngx-gantt-today-color']));
+
+  generatedCss = computed(() => {
+    const vars = this.flatVars();
+    const lines = [':root {', ...Object.entries(vars).filter(([,v]) => v).map(([k, v]) => `  ${k}: ${v};`), '}'];
+    return lines.join('\n');
+  });
 
   // ===== DEMO DATA =====
   months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];
@@ -530,6 +655,13 @@ export class ThemingDemoComponent {
     );
   }
 
+  copyGeneratedCss(): void {
+    navigator.clipboard.writeText(this.generatedCss()).then(() => {
+      this.copied.set(true);
+      setTimeout(() => this.copied.set(false), 2000);
+    });
+  }
+
   applyPreset(preset: ThemePreset): void {
     this.activePreset.set(preset.name);
     this.varsState.set(this.buildInitialVars(preset.vars));
@@ -572,8 +704,19 @@ export class ThemingDemoComponent {
     const treeKeys  = ['--ngx-tree-hover-bg', '--ngx-tree-selected-bg', '--ngx-tree-selected-color', '--ngx-tree-border'];
     const ttKeys    = ['--ngx-tooltip-bg', '--ngx-tooltip-color', '--ngx-popover-bg', '--ngx-popover-border', '--ngx-popover-header-bg'];
     const ganttKeys = ['--ngx-gantt-bg', '--ngx-gantt-border', '--ngx-gantt-bar-bg', '--ngx-gantt-bar-progress-bg', '--ngx-gantt-header-bg', '--ngx-gantt-today-color', '--ngx-gantt-text'];
-    const pick = (keys: string[]) => Object.fromEntries(keys.map(k => [k, vars[k] ?? '']));
-    return { charts: pick(chartKeys), inputs: pick(inputKeys), grid: pick(gridKeys), tree: pick(treeKeys), tooltip: pick(ttKeys), gantt: pick(ganttKeys) };
+    const defaults: Record<string, string> = {
+      '--ngx-chart-axis': vars['--ngx-chart-axis'] ?? '#ced4da',
+      '--ngx-input-text': vars['--ngx-input-text'] ?? '#212529',
+      '--ngx-input-radius': vars['--ngx-input-radius'] ?? '4px',
+      '--ngx-grid-bg': vars['--ngx-grid-bg'] ?? (vars['--ngx-chart-bg'] ?? '#ffffff'),
+      '--ngx-tree-bg': vars['--ngx-tree-bg'] ?? (vars['--ngx-chart-bg'] ?? '#ffffff'),
+      '--ngx-tree-text': vars['--ngx-tree-text'] ?? '#212529',
+      '--ngx-popover-radius': vars['--ngx-popover-radius'] ?? '6px',
+      '--ngx-gantt-grid-line': vars['--ngx-gantt-grid-line'] ?? '#ebedf0',
+    };
+    const merged = { ...defaults, ...vars };
+    const pick = (keys: string[]) => Object.fromEntries(keys.map(k => [k, merged[k] ?? '']));
+    return { charts: pick([...chartKeys, '--ngx-chart-axis']), inputs: pick([...inputKeys, '--ngx-input-text', '--ngx-input-radius']), grid: pick([...gridKeys, '--ngx-grid-bg']), tree: pick([...treeKeys, '--ngx-tree-bg', '--ngx-tree-text']), tooltip: pick([...ttKeys, '--ngx-popover-radius']), gantt: pick([...ganttKeys, '--ngx-gantt-grid-line']) };
   }
 
   private applyAllVars(vars: Record<string, string>): void {

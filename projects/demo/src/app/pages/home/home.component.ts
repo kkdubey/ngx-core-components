@@ -1,5 +1,6 @@
 import { Component } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { CommonModule } from '@angular/common';
 
 interface ComponentCard {
   icon: string;
@@ -14,64 +15,99 @@ interface ComponentCard {
 @Component({
   selector: 'app-home',
   standalone: true,
-  imports: [RouterLink],
+  imports: [RouterLink, CommonModule],
   template: `
     <div class="home-page">
-
-      <!-- Hero -->
+      <!-- Hero Section -->
       <div class="hero">
-        <div class="hero-badge">Angular 19 · 20 · 21 · Standalone · Zero Dependencies</div>
-        <h1 class="hero-title">ngx-core-components</h1>
-        <p class="hero-subtitle">
-          A production-ready UI component library for Angular 19, 20, and 21.
-          Built with signals, OnPush change detection, and CSS custom properties for full theming control.
-        </p>
-        <div class="hero-actions">
-          <a class="btn-primary" routerLink="/getting-started">Get Started</a>
-          <a class="btn-secondary" routerLink="/charts">View Components</a>
-        </div>
-        <div class="hero-stats">
-          <div class="stat"><span class="stat-num">20+</span><span class="stat-label">Components</span></div>
-          <div class="stat-div"></div>
-          <div class="stat"><span class="stat-num">0</span><span class="stat-label">Dependencies</span></div>
-          <div class="stat-div"></div>
-          <div class="stat"><span class="stat-num">100%</span><span class="stat-label">Standalone</span></div>
-          <div class="stat-div"></div>
-          <div class="stat"><span class="stat-num">CSS</span><span class="stat-label">Themeable</span></div>
+        <div class="hero-content">
+          <div class="hero-badge">🏢 Enterprise-Grade Angular Components</div>
+          <h1 class="hero-title">ngx-core-components</h1>
+          <p class="hero-subtitle">
+            A comprehensive, production-ready UI component library for Angular 19, 20, and 21. 
+            Built with signals, OnPush change detection, and CSS custom properties. 
+            50+ reusable components. Zero dependencies. Fully typed. Enterprise-ready.
+          </p>
+          <div class="hero-actions">
+            <a class="btn btn-primary" routerLink="/getting-started">
+              <span>🚀</span> Get Started Now
+            </a>
+            <a class="btn btn-secondary" routerLink="/charts">
+              <span>📚</span> Browse All Components
+            </a>
+          </div>
         </div>
       </div>
 
-      <!-- Install -->
-      <div class="install-section">
-        <div class="install-card">
-          <div class="install-label">Install</div>
-          <pre class="install-code">npm install ngx-core-components</pre>
+      <!-- Stats Section -->
+      <div class="stats-section">
+        <div class="stat-card">
+          <div class="stat-icon">📦</div>
+          <div class="stat-value">50+</div>
+          <div class="stat-label">Production Components</div>
         </div>
-        <div class="install-card">
-          <div class="install-label">Import (standalone)</div>
-          <pre class="install-code">import &#123; BarChartComponent &#125; from 'ngx-core-components';
-
-&#64;Component(&#123;
-  imports: [BarChartComponent],
-  template: &#96;&lt;ngx-bar-chart [series]="data" /&gt;&#96;
-&#125;)</pre>
+        <div class="stat-card">
+          <div class="stat-icon">⚡</div>
+          <div class="stat-value">0</div>
+          <div class="stat-label">External Dependencies</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">🎯</div>
+          <div class="stat-value">100%</div>
+          <div class="stat-label">Standalone & Typed</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">🎨</div>
+          <div class="stat-value">CSS</div>
+          <div class="stat-label">Fully Themeable</div>
         </div>
       </div>
 
-      <!-- Component Cards -->
-      <div class="section-title">All Components</div>
+      <!-- Highlights Section -->
+      <div class="highlights-section">
+        <div class="highlight-item">
+          <div class="highlight-icon">✅</div>
+          <div class="highlight-text">
+            <div class="highlight-title">Production Ready</div>
+            <p>Battle-tested components suitable for enterprise applications</p>
+          </div>
+        </div>
+        <div class="highlight-item">
+          <div class="highlight-icon">🔒</div>
+          <div class="highlight-text">
+            <div class="highlight-title">Type Safe</div>
+            <p>Fully typed with TypeScript for maximum IDE support</p>
+          </div>
+        </div>
+        <div class="highlight-item">
+          <div class="highlight-icon">📊</div>
+          <div class="highlight-text">
+            <div class="highlight-title">Rich Components</div>
+            <p>Charts, grids, forms, dialogs, and more out of the box</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick Install -->
+      <div class="quick-install">
+        <div class="install-header">Quick Start</div>
+        <pre class="install-code">npm install ngx-core-components</pre>
+      </div>
+
+      <!-- Component Categories -->
+      <div class="section-title">📦 Component Library (50+)</div>
+      <div class="category-intro">Complete set of components for building enterprise applications</div>
+
+      <div class="section-title">🖱️ Buttons & Actions (5 Components)</div>
       <div class="cards-grid">
-        @for (card of componentCards; track card.title) {
+        @for (card of buttonComponents; track card.title) {
           <a class="component-card" [routerLink]="card.route">
             <div class="card-icon">{{ card.icon }}</div>
             <div class="card-body">
-              <div class="card-header-row">
-                <span class="card-title">{{ card.title }}</span>
-                <span class="card-tag" [style.background]="card.tagColor + '22'" [style.color]="card.tagColor">{{ card.tag }}</span>
-              </div>
+              <div class="card-title">{{ card.title }}</div>
               <p class="card-desc">{{ card.description }}</p>
               <div class="card-features">
-                @for (f of card.features; track f) {
+                @for (f of card.features.slice(0, 3); track f) {
                   <span class="feature-chip">{{ f }}</span>
                 }
               </div>
@@ -80,8 +116,152 @@ interface ComponentCard {
         }
       </div>
 
-      <!-- Features Section -->
-      <div class="section-title">Why ngx-core-components?</div>
+      <div class="section-title">🧩 Layout (5 Components)</div>
+      <div class="cards-grid">
+        @for (card of layoutComponents; track card.title) {
+          <a class="component-card" [routerLink]="card.route">
+            <div class="card-icon">{{ card.icon }}</div>
+            <div class="card-body">
+              <div class="card-title">{{ card.title }}</div>
+              <p class="card-desc">{{ card.description }}</p>
+              <div class="card-features">
+                @for (f of card.features.slice(0, 3); track f) {
+                  <span class="feature-chip">{{ f }}</span>
+                }
+              </div>
+            </div>
+          </a>
+        }
+      </div>
+
+      <div class="section-title">📊 Charts & Visualization (5 Components)</div>
+      <div class="cards-grid">
+        @for (card of chartComponents; track card.title) {
+          <a class="component-card" [routerLink]="card.route">
+            <div class="card-icon">{{ card.icon }}</div>
+            <div class="card-body">
+              <div class="card-title">{{ card.title }}</div>
+              <p class="card-desc">{{ card.description }}</p>
+              <div class="card-features">
+                @for (f of card.features.slice(0, 3); track f) {
+                  <span class="feature-chip">{{ f }}</span>
+                }
+              </div>
+            </div>
+          </a>
+        }
+      </div>
+
+      <div class="section-title">✏️ Form Inputs (15 Components)</div>
+      <div class="cards-grid">
+        @for (card of inputComponents; track card.title) {
+          <a class="component-card" [routerLink]="card.route">
+            <div class="card-icon">{{ card.icon }}</div>
+            <div class="card-body">
+              <div class="card-title">{{ card.title }}</div>
+              <p class="card-desc">{{ card.description }}</p>
+              <div class="card-features">
+                @for (f of card.features.slice(0, 3); track f) {
+                  <span class="feature-chip">{{ f }}</span>
+                }
+              </div>
+            </div>
+          </a>
+        }
+      </div>
+
+      <div class="section-title">🔔 Feedback (4 Components)</div>
+      <div class="cards-grid">
+        @for (card of feedbackComponents; track card.title) {
+          <a class="component-card" [routerLink]="card.route">
+            <div class="card-icon">{{ card.icon }}</div>
+            <div class="card-body">
+              <div class="card-title">{{ card.title }}</div>
+              <p class="card-desc">{{ card.description }}</p>
+              <div class="card-features">
+                @for (f of card.features.slice(0, 3); track f) {
+                  <span class="feature-chip">{{ f }}</span>
+                }
+              </div>
+            </div>
+          </a>
+        }
+      </div>
+
+      <div class="section-title">🧭 Navigation (2 Components)</div>
+      <div class="cards-grid">
+        @for (card of navigationComponents; track card.title) {
+          <a class="component-card" [routerLink]="card.route">
+            <div class="card-icon">{{ card.icon }}</div>
+            <div class="card-body">
+              <div class="card-title">{{ card.title }}</div>
+              <p class="card-desc">{{ card.description }}</p>
+              <div class="card-features">
+                @for (f of card.features.slice(0, 3); track f) {
+                  <span class="feature-chip">{{ f }}</span>
+                }
+              </div>
+            </div>
+          </a>
+        }
+      </div>
+
+      <div class="section-title">▦ Barcodes (2 Components)</div>
+      <div class="cards-grid">
+        @for (card of barcodeComponents; track card.title) {
+          <a class="component-card" [routerLink]="card.route">
+            <div class="card-icon">{{ card.icon }}</div>
+            <div class="card-body">
+              <div class="card-title">{{ card.title }}</div>
+              <p class="card-desc">{{ card.description }}</p>
+              <div class="card-features">
+                @for (f of card.features.slice(0, 3); track f) {
+                  <span class="feature-chip">{{ f }}</span>
+                }
+              </div>
+            </div>
+          </a>
+        }
+      </div>
+
+      <div class="section-title">🗂️ Data Display & Tables (4 Components)</div>
+      <div class="cards-grid">
+        @for (card of dataComponents; track card.title) {
+          <a class="component-card" [routerLink]="card.route">
+            <div class="card-icon">{{ card.icon }}</div>
+            <div class="card-body">
+              <div class="card-title">{{ card.title }}</div>
+              <p class="card-desc">{{ card.description }}</p>
+              <div class="card-features">
+                @for (f of card.features.slice(0, 3); track f) {
+                  <span class="feature-chip">{{ f }}</span>
+                }
+              </div>
+            </div>
+          </a>
+        }
+      </div>
+
+      <div class="section-title">🪟 Overlays & Modals (1 Component)</div>
+      <div class="cards-grid">
+        @for (card of overlayComponents; track card.title) {
+          <a class="component-card" [routerLink]="card.route">
+            <div class="card-icon">{{ card.icon }}</div>
+            <div class="card-body">
+              <div class="card-title">{{ card.title }}</div>
+              <p class="card-desc">{{ card.description }}</p>
+              <div class="card-features">
+                @for (f of card.features.slice(0, 3); track f) {
+                  <span class="feature-chip">{{ f }}</span>
+                }
+              </div>
+            </div>
+          </a>
+        }
+      </div>
+
+      <!-- Enterprise Features -->
+      <div class="section-title">🏢 Enterprise Features</div>
       <div class="features-grid">
         @for (feat of features; track feat.title) {
           <div class="feature-card">
@@ -92,8 +272,8 @@ interface ComponentCard {
         }
       </div>
 
-      <!-- Quick Start Code -->
-      <div class="section-title">Quick Start Example</div>
+      <!-- Code Examples -->
+      <div class="section-title">💻 Usage Examples</div>
       <div class="quickstart-grid">
         @for (ex of quickStartExamples; track ex.title) {
           <div class="qs-card">
@@ -105,88 +285,141 @@ interface ComponentCard {
 
       <!-- Footer -->
       <div class="home-footer">
-        <span>ngx-core-components · MIT License · Angular 19 · 20 · 21 · Built with ❤️</span>
+        <p>ngx-core-components · MIT License · Built with ❤️ for Angular developers</p>
       </div>
-
     </div>
   `,
   styles: [`
-    :host { display: flex; flex-direction: column; height: 100%; overflow-y: auto; }
-    .home-page { padding: 32px 40px; max-width: 1200px; margin: 0 auto; width: 100%; box-sizing: border-box; }
+    :host { display: flex; flex-direction: column; height: 100%; overflow-y: auto; background: #f7f8fb; }
+    .home-page { padding: 40px; max-width: 1400px; margin: 0 auto; width: 100%; }
 
     /* Hero */
-    .hero { text-align: center; padding: 48px 0 40px; }
+    .hero { text-align: center; padding: 60px 0 40px; }
     .hero-badge {
-      display: inline-block; background: #e8f0fe; color: #1a73e8;
-      font-size: 11px; font-weight: 700; letter-spacing: 0.5px;
-      padding: 5px 14px; border-radius: 20px; margin-bottom: 20px; text-transform: uppercase;
+      display: inline-block; background: #e8f0fe; color: #0f0f23;
+      font-size: 12px; font-weight: 700; letter-spacing: 0.5px;
+      padding: 6px 16px; border-radius: 20px; margin-bottom: 24px;
     }
-    .hero-title { margin: 0 0 16px; font-size: 42px; font-weight: 800; color: #1a1a2e; letter-spacing: -1px; }
-    .hero-subtitle { margin: 0 auto 28px; max-width: 640px; font-size: 16px; color: #6c757d; line-height: 1.6; }
-    .hero-actions { display: flex; gap: 12px; justify-content: center; margin-bottom: 36px; }
+    .hero-title { margin: 0 0 16px; font-size: 48px; font-weight: 800; color: #0f0f23; letter-spacing: -1px; }
+    .hero-subtitle { margin: 0 auto 32px; max-width: 720px; font-size: 16px; color: #6c757d; line-height: 1.7; }
+    .hero-actions { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
+
+    .btn {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 12px 28px; border-radius: 8px; text-decoration: none;
+      font-size: 14px; font-weight: 600; transition: all 0.2s ease;
+      border: none; cursor: pointer;
+    }
     .btn-primary {
-      padding: 11px 28px; background: #1a73e8; color: #fff; border-radius: 6px;
-      text-decoration: none; font-size: 14px; font-weight: 600; transition: background 0.15s;
+      background: #0f0f23; color: #fff;
+      &:hover { transform: translateY(-2px); box-shadow: 0 8px 16px rgba(15, 15, 35, 0.2); }
     }
-    .btn-primary:hover { background: #1558b0; }
     .btn-secondary {
-      padding: 11px 28px; background: #fff; color: #1a73e8; border: 1px solid #ced4da;
-      border-radius: 6px; text-decoration: none; font-size: 14px; font-weight: 600;
+      background: #fff; color: #0f0f23; border: 2px solid #0f0f23;
+      &:hover { background: #f7f8fb; }
     }
-    .btn-secondary:hover { background: #f1f3f5; }
-    .hero-stats { display: flex; gap: 0; justify-content: center; align-items: center; }
-    .stat { text-align: center; padding: 0 24px; }
-    .stat-num { display: block; font-size: 24px; font-weight: 800; color: #1a1a2e; }
-    .stat-label { font-size: 12px; color: #6c757d; }
-    .stat-div { width: 1px; height: 40px; background: #dee2e6; }
 
-    /* Install */
-    .install-section { display: grid; grid-template-columns: auto 1fr; gap: 16px; margin-bottom: 40px; }
-    .install-card { background: #1e1e1e; border-radius: 8px; padding: 16px 20px; }
-    .install-label { font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: #888; margin-bottom: 8px; font-weight: 700; }
-    .install-code { margin: 0; color: #d4d4d4; font-family: 'Cascadia Code', Consolas, monospace; font-size: 13px; white-space: pre; }
+    /* Stats */
+    .stats-section { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 16px; margin: 40px 0; }
+    .stat-card {
+      background: #fff; border: 1px solid #e8ecf1; border-radius: 10px;
+      padding: 24px; text-align: center; transition: all 0.2s ease;
+      &:hover { border-color: #0f0f23; box-shadow: 0 4px 12px rgba(15, 15, 35, 0.08); }
+    }
+    .stat-icon { font-size: 28px; margin-bottom: 8px; }
+    .stat-value { font-size: 28px; font-weight: 800; color: #0f0f23; margin-bottom: 4px; }
+    .stat-label { font-size: 12px; color: #6c757d; font-weight: 500; }
 
-    /* Cards */
-    .section-title { font-size: 20px; font-weight: 700; color: #1a1a2e; margin: 0 0 20px; padding-top: 8px; border-top: 1px solid #e9ecef; }
-    .cards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 16px; margin-bottom: 40px; }
+    /* Quick Install */
+    .quick-install { background: #1e1e1e; border-radius: 10px; padding: 24px; margin: 40px 0; }
+    .install-header { font-size: 12px; font-weight: 700; color: #888; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 12px; }
+    .install-code { margin: 0; color: #d4d4d4; font-family: 'Cascadia Code', Consolas, monospace; font-size: 14px; }
+
+    /* Section Title */
+    .section-title { font-size: 22px; font-weight: 700; color: #212529; margin: 48px 0 24px; padding-bottom: 12px; border-bottom: 2px solid #e8ecf1; }
+
+    /* Component Cards */
+    .cards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 16px; margin-bottom: 32px; }
     .component-card {
-      background: #fff; border: 1px solid #e9ecef; border-radius: 10px; padding: 20px;
-      text-decoration: none; display: flex; gap: 16px; transition: all 0.15s;
+      background: #fff; border: 1px solid #e8ecf1; border-radius: 10px;
+      padding: 20px; text-decoration: none; display: flex; gap: 16px;
+      transition: all 0.2s ease; cursor: pointer;
+      &:hover { border-color: #0f0f23; box-shadow: 0 8px 24px rgba(15, 15, 35, 0.12); transform: translateY(-2px); }
     }
-    .component-card:hover { border-color: #1a73e8; box-shadow: 0 4px 16px rgba(26,115,232,0.12); transform: translateY(-1px); }
-    .card-icon { font-size: 28px; flex-shrink: 0; width: 48px; height: 48px; display: flex; align-items: center; justify-content: center; background: #f8f9fa; border-radius: 8px; }
-    .card-body { flex: 1; min-width: 0; }
-    .card-header-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
-    .card-title { font-size: 15px; font-weight: 700; color: #1a1a2e; }
-    .card-tag { font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 10px; text-transform: uppercase; letter-spacing: 0.4px; }
+    .card-icon { font-size: 32px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+    .card-body { flex: 1; }
+    .card-title { font-size: 15px; font-weight: 700; color: #212529; margin: 0 0 6px; }
     .card-desc { margin: 0 0 10px; font-size: 13px; color: #6c757d; line-height: 1.5; }
     .card-features { display: flex; flex-wrap: wrap; gap: 6px; }
-    .feature-chip { background: #f1f3f5; color: #495057; font-size: 11px; padding: 2px 8px; border-radius: 10px; }
+    .feature-chip { background: #f1f3f5; color: #495057; font-size: 11px; padding: 3px 8px; border-radius: 10px; }
 
     /* Features */
-    .features-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; margin-bottom: 40px; }
-    .feature-card { background: #fff; border: 1px solid #e9ecef; border-radius: 10px; padding: 20px; }
-    .feature-icon { font-size: 24px; margin-bottom: 10px; }
-    .feature-title { font-size: 14px; font-weight: 700; color: #1a1a2e; margin-bottom: 6px; }
-    .feature-desc { font-size: 13px; color: #6c757d; line-height: 1.5; }
+    .features-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 20px; margin-bottom: 32px; }
+    .feature-card { background: #fff; border: 1px solid #e8ecf1; border-radius: 10px; padding: 24px; transition: all 0.2s ease; }
+    .feature-card:hover { border-color: #0f0f23; box-shadow: 0 4px 12px rgba(15, 15, 35, 0.08); }
+    .feature-icon { font-size: 32px; margin-bottom: 12px; }
+    .feature-title { font-size: 15px; font-weight: 700; color: #212529; margin-bottom: 8px; }
+    .feature-desc { font-size: 13px; color: #6c757d; line-height: 1.6; margin: 0; }
 
     /* Quick Start */
-    .quickstart-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(380px, 1fr)); gap: 16px; margin-bottom: 40px; }
-    .qs-card { background: #1e1e1e; border-radius: 8px; padding: 20px; }
-    .qs-title { font-size: 12px; font-weight: 700; color: #888; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 12px; }
-    .code-block { margin: 0; color: #d4d4d4; font-family: 'Cascadia Code', Consolas, monospace; font-size: 12px; white-space: pre; overflow-x: auto; }
+    .quickstart-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 16px; margin-bottom: 32px; }
+    .qs-card { background: #1e1e1e; border-radius: 8px; padding: 16px; }
+    .qs-title { font-size: 11px; font-weight: 700; color: #888; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 12px; }
+    .code-block { margin: 0; color: #d4d4d4; font-family: 'Cascadia Code', Consolas, monospace; font-size: 12px; max-height: 300px; overflow-y: auto; }
 
     /* Footer */
-    .home-footer { text-align: center; padding: 32px 0 16px; color: #adb5bd; font-size: 12px; border-top: 1px solid #e9ecef; margin-top: 8px; }
+    .home-footer { text-align: center; padding: 40px 0 20px; color: #adb5bd; font-size: 12px; border-top: 1px solid #e8ecf1; margin-top: 32px; }
+
+    .highlights-section { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin: 40px 0; }
+    .highlight-item { display: flex; gap: 16px; padding: 20px; background: #fff; border: 1px solid #e8ecf1; border-radius: 10px; }
+    .highlight-icon { font-size: 32px; flex-shrink: 0; }
+    .highlight-text { flex: 1; }
+    .highlight-title { font-size: 15px; font-weight: 700; color: #212529; margin: 0 0 4px; }
+    .highlight-text p { margin: 0; font-size: 13px; color: #6c757d; line-height: 1.5; }
+
+    .category-intro { font-size: 14px; color: #6c757d; margin: -16px 0 24px 0; font-style: italic; }
+
+    @media (max-width: 768px) {
+      .home-page { padding: 24px; }
+      .hero-title { font-size: 32px; }
+      .section-title { font-size: 18px; }
+      .cards-grid { grid-template-columns: 1fr; }
+      .highlights-section { grid-template-columns: 1fr; }
+    }
   `]
 })
 export class HomeComponent {
 
-  componentCards: ComponentCard[] = [
+  buttonComponents: ComponentCard[] = [
+    {
+      icon: '🖱️',
+      title: 'Buttons & Actions',
+      description: 'Button, ButtonGroup, Chip, SplitButton, and DropdownButton components for primary user actions.',
+      route: '/buttons',
+      tag: 'Buttons',
+      tagColor: '#0f766e',
+      features: ['Variants', 'Sizes', 'Loading', 'Split Actions', 'Chips'],
+    },
+  ];
+
+  layoutComponents: ComponentCard[] = [
+    {
+      icon: '🧩',
+      title: 'Layout Components',
+      description: 'Card, TabStrip, Accordion, Stepper, and Splitter for structured layouts and guided flows.',
+      route: '/layout',
+      tag: 'Layout',
+      tagColor: '#1d4ed8',
+      features: ['Cards', 'Tabs', 'Accordion', 'Stepper', 'Resizable Panes'],
+    },
+  ];
+
+
+  chartComponents: ComponentCard[] = [
     {
       icon: '📊',
       title: 'Bar Chart',
-      description: 'SVG-based vertical/horizontal bar chart. Supports grouped and stacked modes with tooltips.',
+      description: 'SVG-based vertical/horizontal bar chart. Supports grouped and stacked modes.',
       route: '/charts',
       tag: 'Charts',
       tagColor: '#8e44ad',
@@ -219,6 +452,18 @@ export class HomeComponent {
       tagColor: '#8e44ad',
       features: ['Line', 'Area', 'Bar', 'No axes', 'Inline'],
     },
+    {
+      icon: '📅',
+      title: 'Gantt Chart',
+      description: 'Full-featured project timeline with drag-and-drop, dependencies, milestones and zoom.',
+      route: '/basic',
+      tag: 'Charts',
+      tagColor: '#8e44ad',
+      features: ['Drag & Drop', 'Dependencies', 'Milestones', 'Zoom', 'Keyboard'],
+    },
+  ];
+
+  inputComponents: ComponentCard[] = [
     {
       icon: '✏️',
       title: 'TextBox',
@@ -256,6 +501,99 @@ export class HomeComponent {
       features: ['Tag chips', 'Select All', 'Filterable', 'Max tags'],
     },
     {
+      icon: '✅',
+      title: 'Checkbox',
+      description: 'Accessible checkbox with indeterminate state, disabled mode, and ControlValueAccessor support.',
+      route: '/inputs',
+      tag: 'Inputs',
+      tagColor: '#27ae60',
+      features: ['Indeterminate', 'ControlValueAccessor', 'Disabled', 'Accessible'],
+    },
+    {
+      icon: '🔘',
+      title: 'Radio Group',
+      description: 'Radio button group with vertical and inline layouts. ControlValueAccessor support for Reactive Forms.',
+      route: '/inputs',
+      tag: 'Inputs',
+      tagColor: '#27ae60',
+      features: ['Vertical / Inline', 'ControlValueAccessor', 'Disabled', 'Custom options'],
+    },
+    {
+      icon: '🔍',
+      title: 'Autocomplete',
+      description: 'Text input with type-ahead suggestion dropdown, keyboard navigation, and min-length filter.',
+      route: '/inputs',
+      tag: 'Inputs',
+      tagColor: '#27ae60',
+      features: ['Type-ahead', 'Keyboard nav', 'Min-length', 'ControlValueAccessor'],
+    },
+    {
+      icon: '🎚️',
+      title: 'Slider, Switch, Rating',
+      description: 'Interactive numeric and boolean controls for modern forms and preference settings.',
+      route: '/inputs',
+      tag: 'Inputs',
+      tagColor: '#27ae60',
+      features: ['Range slider', 'Toggle switch', 'Star rating'],
+    },
+    {
+      icon: '🔢',
+      title: 'Numeric, Time & Date Range',
+      description: 'NumericTextBox, TimePicker, and DateRangePicker for precise structured input.',
+      route: '/inputs',
+      tag: 'Inputs',
+      tagColor: '#27ae60',
+      features: ['Spin controls', '12/24h time', 'Range selection'],
+    },
+    {
+      icon: '🎨',
+      title: 'Textarea & Color Picker',
+      description: 'Extended input controls including multi-line content and color selection workflows.',
+      route: '/inputs',
+      tag: 'Inputs',
+      tagColor: '#27ae60',
+      features: ['Auto resize', 'Character count', 'Color palette'],
+    },
+  ];
+
+  feedbackComponents: ComponentCard[] = [
+    {
+      icon: '🔔',
+      title: 'Feedback Components',
+      description: 'Badge, ProgressBar, Skeleton, and Notification service to communicate state and progress.',
+      route: '/feedback',
+      tag: 'Feedback',
+      tagColor: '#a16207',
+      features: ['Status badges', 'Progress', 'Loading skeletons', 'Toasts'],
+    },
+  ];
+
+  navigationComponents: ComponentCard[] = [
+    {
+      icon: '🧭',
+      title: 'Navigation Components',
+      description: 'Breadcrumb and Menu components for orientation, hierarchy, and quick access actions.',
+      route: '/navigation',
+      tag: 'Navigation',
+      tagColor: '#7c2d12',
+      features: ['Breadcrumbs', 'Horizontal menu', 'Vertical menu'],
+    },
+  ];
+
+  barcodeComponents: ComponentCard[] = [
+    {
+      icon: '▦',
+      title: 'Barcodes & QR',
+      description: 'Generate QR code and barcode visuals directly in Angular templates.',
+      route: '/barcodes',
+      tag: 'Barcodes',
+      tagColor: '#374151',
+      features: ['QR rendering', 'SVG barcode', 'Custom size/colors'],
+    },
+  ];
+
+  dataComponents: ComponentCard[] = [
+    {
       icon: '🗂️',
       title: 'Data Grid',
       description: 'Full-featured HTML table with client-side sorting, column filtering, pagination and row selection.',
@@ -287,10 +625,13 @@ export class HomeComponent {
       title: 'Tooltip & Popover',
       description: 'Tooltip directive for hover hints (4 positions) and Popover component for rich click overlays.',
       route: '/tooltip',
-      tag: 'Overlay',
-      tagColor: '#c0392b',
+      tag: 'Data',
+      tagColor: '#e67e22',
       features: ['4 positions', 'Auto-flip', 'Rich content', 'Click trigger'],
     },
+  ];
+
+  overlayComponents: ComponentCard[] = [
     {
       icon: '🪟',
       title: 'Dialog',
@@ -300,49 +641,18 @@ export class HomeComponent {
       tagColor: '#c0392b',
       features: ['Programmatic', 'Animated', 'Signal result', 'Backdrop close'],
     },
-    {
-      icon: '✅',
-      title: 'Checkbox',
-      description: 'Accessible checkbox with indeterminate state, disabled mode, and ControlValueAccessor support.',
-      route: '/inputs',
-      tag: 'Inputs',
-      tagColor: '#27ae60',
-      features: ['Indeterminate', 'ControlValueAccessor', 'Disabled', 'Accessible'],
-    },
-    {
-      icon: '🔘',
-      title: 'Radio Group',
-      description: 'Radio button group with vertical and inline layouts. ControlValueAccessor support for Reactive Forms.',
-      route: '/inputs',
-      tag: 'Inputs',
-      tagColor: '#27ae60',
-      features: ['Vertical / Inline', 'ControlValueAccessor', 'Disabled', 'Custom options'],
-    },
-    {
-      icon: '🔍',
-      title: 'Autocomplete',
-      description: 'Text input with type-ahead suggestion dropdown, keyboard navigation, and min-length filter.',
-      route: '/inputs',
-      tag: 'Inputs',
-      tagColor: '#27ae60',
-      features: ['Type-ahead', 'Keyboard nav', 'Min-length', 'ControlValueAccessor'],
-    },
-    {
-      icon: '📅',
-      title: 'Gantt Chart',
-      description: 'Full-featured project timeline with drag-and-drop, dependencies, milestones and zoom.',
-      route: '/basic',
-      tag: 'Charts',
-      tagColor: '#8e44ad',
-      features: ['Drag & Drop', 'Dependencies', 'Milestones', 'Zoom', 'Keyboard'],
-    },
   ];
 
   features = [
     {
+      icon: '🔒',
+      title: 'Type Safe & Typed',
+      desc: 'Full TypeScript support with comprehensive type definitions for maximum IDE support and compile-time safety.',
+    },
+    {
       icon: '⚡',
       title: 'Angular Signals',
-      desc: 'All inputs use the new signal-based input() / output() API. Full OnPush compatibility.',
+      desc: 'Built with the new signal-based input() / output() API. Full OnPush change detection compatibility.',
     },
     {
       icon: '🎨',
@@ -351,23 +661,18 @@ export class HomeComponent {
     },
     {
       icon: '📦',
-      title: 'Zero Runtime Dependencies',
-      desc: 'No third-party chart libs, no CDK. Pure Angular with native DOM APIs only.',
+      title: 'Zero Dependencies',
+      desc: 'No third-party libraries. Pure Angular with native DOM APIs only. Minimal bundle size.',
     },
     {
       icon: '🧩',
       title: 'Standalone Components',
-      desc: 'Import exactly what you need. No NgModule required. Tree-shaking friendly.',
+      desc: 'Import exactly what you need. No NgModule required. Tree-shaking friendly for optimal builds.',
     },
     {
       icon: '♿',
-      title: 'Accessible',
-      desc: 'ARIA attributes, keyboard navigation, and focus management built in.',
-    },
-    {
-      icon: '🔄',
-      title: 'Unidirectional Data Flow',
-      desc: 'All inputs emit events — the parent owns state. No two-way binding side effects.',
+      title: 'Accessible by Default',
+      desc: 'ARIA attributes, keyboard navigation, and focus management built into every component.',
     },
   ];
 

@@ -1,26 +1,66 @@
 <div class="app-shell">
   <!-- Top Navbar -->
   <header class="app-navbar">
-    <button class="nav-toggle" (click)="toggleSidebar()">&#9776;</button>
-    <span class="nav-brand">ngx-core-components</span>
-    <span class="nav-badge">Angular 19 · 20 · 21</span>
-    <span class="nav-subtitle">UI Component Library</span>
+    <div class="navbar-start">
+      <button class="nav-toggle" (click)="toggleSidebar()" title="Toggle sidebar">
+        <span class="hamburger">☰</span>
+      </button>
+      <div class="nav-brand-section">
+        <div class="nav-brand-main">
+          <span class="nav-brand">ngx-core-components</span>
+          <span class="nav-badge">Enterprise</span>
+        </div>
+        <span class="nav-subtitle-text">Angular Component Library</span>
+      </div>
+    </div>
+    <div class="navbar-end">
+      <a href="https://github.com" target="_blank" class="nav-link" title="GitHub Repository">
+        <span>GitHub</span>
+      </a>
+    </div>
   </header>
 
   <div class="app-body">
     <!-- Sidebar Navigation -->
-    <nav class="app-sidebar" [class.collapsed]="!sidebarOpen">
-      @for (group of navGroups; track group.title) {
-        <div class="nav-group">
-          <div class="nav-group-title">{{ group.title }}</div>
-          @for (item of group.items; track item.path) {
-            <a class="nav-item" [routerLink]="item.path" routerLinkActive="active">
-              <span class="nav-icon">{{ item.icon }}</span>
-              <span class="nav-label">{{ item.label }}</span>
-            </a>
-          }
-        </div>
-      }
+    <nav class="app-sidebar" [class.collapsed]="!sidebarOpen()">
+      <!-- Search Bar -->
+      <div class="sidebar-search">
+        <input 
+          type="text" 
+          class="search-input" 
+          placeholder="Search components..."
+          [value]="searchQuery()"
+          (input)="onSearchInput($event)"
+        />
+        @if (searchQuery()) {
+          <button class="search-clear" (click)="searchQuery.set('')">✕</button>
+        }
+      </div>
+
+      <div class="sidebar-content">
+        @for (group of getVisibleGroups(); track group.title) {
+          <div class="nav-group">
+            <div class="nav-group-header">
+              <span class="nav-group-icon">{{ group.icon }}</span>
+              <span class="nav-group-title">{{ group.title }}</span>
+            </div>
+            @for (item of group.items; track item.path) {
+              <a class="nav-item" [routerLink]="item.path" routerLinkActive="active">
+                <span class="nav-icon">{{ item.icon }}</span>
+                <div class="nav-label-section">
+                  <span class="nav-label">{{ item.label }}</span>
+                  <span class="nav-desc">{{ item.desc }}</span>
+                </div>
+              </a>
+            }
+          </div>
+        }
+      </div>
+
+      <div class="sidebar-footer">
+        <div class="footer-text">ngx-core-components</div>
+        <div class="footer-version">MIT License</div>
+      </div>
     </nav>
 
     <!-- Main Content -->

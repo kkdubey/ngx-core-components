@@ -134,7 +134,7 @@ export class InfoDialogContent {
       <div class="section-label">How to Use</div>
       <pre class="code-block">{{ codeExample }}</pre>
 
-      <div class="section-label">API — DialogService.open()</div>
+      <div class="section-label">API Reference — DialogService.open()</div>
       <div class="api-table-wrap">
         <table class="api-table">
           <thead><tr><th>Config Property</th><th>Type</th><th>Default</th><th>Description</th></tr></thead>
