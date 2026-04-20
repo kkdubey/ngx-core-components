@@ -1,22 +1,22 @@
 # ngx-core-components
 
-Angular 19 / 20 / 21 component library featuring a full-featured **SVG Gantt Chart**.
+Angular 19 / 20 / 21 standalone component library with enterprise-ready UI building blocks including a full-featured **SVG Gantt Chart**, inputs, data grid, dialogs, charts, navigation, layout, feedback, and barcode components.
 
 [![npm version](https://img.shields.io/npm/v/ngx-core-components.svg)](https://www.npmjs.com/package/ngx-core-components)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 ## Features
 
-- **Task bars** with progress indicators
-- **Dependency arrows** (FS, SS, FF, SF)
-- **Drag-to-move** and **drag-to-resize** tasks
-- **Zoom levels** — Day / Week / Month
-- **Today marker** — dashed vertical line
-- **Milestones** — diamond-shaped markers
-- **Tree hierarchy** — collapsible task groups in a sidebar
-- **Keyboard accessible** — Arrow keys, Enter, Escape
+- **Gantt chart** with task bars, dependencies, milestones, drag/resize, zoom, and hierarchy
+- **Input controls** including text, dropdown, multi-select, autocomplete, date/time, slider, switch, rating, and color picker
+- **Charts** including bar, line, pie, donut, and sparkline
+- **Data presentation** with grid, tree view, and list view
+- **Dialogs, tooltips, and popovers** for overlays and contextual UI
+- **Buttons, chips, menus, breadcrumbs, tabs, cards, accordions, steppers, and splitters**
+- **Feedback components** including badge, progress bar, skeleton, and notifications
+- **Barcode and QR code generation** with no external runtime dependency
 - **Fully themeable** via CSS custom properties
-- **Zero runtime dependencies** — only Angular peer deps
+- **Zero runtime dependencies** — only Angular peer dependencies
 - **OnPush change detection** + Angular Signals
 - **Standalone components** (no NgModules)
 
@@ -26,7 +26,109 @@ Angular 19 / 20 / 21 component library featuring a full-featured **SVG Gantt Cha
 npm install ngx-core-components
 ```
 
+## Entry Points
+
+You can import from the primary package for convenience:
+
+```typescript
+import { GanttChartComponent, TextBoxComponent, DataGridComponent } from 'ngx-core-components';
+```
+
+Or use secondary entry points for more focused imports:
+
+```typescript
+import { TextBoxComponent, DropdownComponent } from 'ngx-core-components/inputs';
+import { BarChartComponent, GanttChartComponent } from 'ngx-core-components/charts';
+import { DataGridComponent } from 'ngx-core-components/grid';
+import { DialogService } from 'ngx-core-components/dialog';
+import { ButtonComponent } from 'ngx-core-components/buttons';
+import { CardComponent } from 'ngx-core-components/layout';
+import { BadgeComponent } from 'ngx-core-components/feedback';
+import { BreadcrumbComponent } from 'ngx-core-components/navigation';
+import { TreeViewComponent, ListViewComponent } from 'ngx-core-components/views';
+import { QrCodeComponent, BarcodeComponent } from 'ngx-core-components/barcodes';
+```
+
+## Included Components
+
+### Charts
+
+- `GanttChartComponent`
+- `BarChartComponent`
+- `LineChartComponent`
+- `PieChartComponent`
+- `SparklineComponent`
+
+### Inputs
+
+- `TextBoxComponent`
+- `CheckboxComponent`
+- `RadioGroupComponent`
+- `DropdownComponent`
+- `MultiSelectComponent`
+- `AutocompleteComponent`
+- `DatePickerComponent`
+- `SliderComponent`
+- `SwitchComponent`
+- `RatingComponent`
+- `NumericTextBoxComponent`
+- `TextareaComponent`
+- `ColorPickerComponent`
+- `TimePickerComponent`
+- `DateRangePickerComponent`
+
+### Data Views
+
+- `DataGridComponent`
+- `TreeViewComponent`
+- `ListViewComponent`
+
+### Dialog and Overlay
+
+- `DialogService`
+- `DialogContainerComponent`
+- `TooltipDirective`
+- `PopoverComponent`
+
+### Buttons and Actions
+
+- `ButtonComponent`
+- `ButtonGroupComponent`
+- `ChipComponent`
+- `ChipListComponent`
+- `SplitButtonComponent`
+- `DropDownButtonComponent`
+
+### Layout
+
+- `CardComponent`
+- `TabStripComponent`
+- `TabComponent`
+- `AccordionComponent`
+- `StepperComponent`
+- `SplitterComponent`
+
+### Feedback
+
+- `BadgeComponent`
+- `ProgressBarComponent`
+- `SkeletonComponent`
+- `NotificationService`
+- `NotificationContainerComponent`
+
+### Navigation
+
+- `BreadcrumbComponent`
+- `MenuComponent`
+
+### Barcodes
+
+- `QrCodeComponent`
+- `BarcodeComponent`
+
 ## Quick Start
+
+### Gantt Chart
 
 ```typescript
 import { Component } from '@angular/core';
@@ -71,7 +173,72 @@ export class MyComponent {
 }
 ```
 
+### Form Controls
+
+```typescript
+import { Component, signal } from '@angular/core';
+import { TextBoxComponent, DropdownComponent, type DropdownOption } from 'ngx-core-components';
+
+@Component({
+  standalone: true,
+  imports: [TextBoxComponent, DropdownComponent],
+  template: `
+    <ngx-textbox
+      [value]="name()"
+      label="Full Name"
+      placeholder="Enter your name"
+      (valueChange)="name.set($event)"
+    />
+
+    <ngx-dropdown
+      [options]="countries"
+      [value]="country()"
+      label="Country"
+      placeholder="Select country"
+      (valueChange)="country.set($event)"
+    />
+  `,
+})
+export class MyFormComponent {
+  name = signal('');
+  country = signal<unknown>(null);
+
+  countries: DropdownOption[] = [
+    { label: 'United States', value: 'us' },
+    { label: 'Germany', value: 'de' },
+    { label: 'Japan', value: 'jp' },
+  ];
+}
+```
+
+### Data Grid
+
+```typescript
+import { Component } from '@angular/core';
+import { DataGridComponent, type GridColumnDef } from 'ngx-core-components';
+
+@Component({
+  standalone: true,
+  imports: [DataGridComponent],
+  template: `<ngx-data-grid [data]="rows" [columns]="columns" [pageSize]="5" />`,
+})
+export class MyGridComponent {
+  columns: GridColumnDef[] = [
+    { field: 'id', title: 'ID', width: 80 },
+    { field: 'name', title: 'Name', sortable: true },
+    { field: 'status', title: 'Status' },
+  ];
+
+  rows = [
+    { id: 1, name: 'Alpha', status: 'Active' },
+    { id: 2, name: 'Beta', status: 'Paused' },
+  ];
+}
+```
+
 ## API
+
+This README focuses on the primary Gantt API because it is the largest surface in the package. The demo application under `projects/demo` shows usage and API reference coverage for the other components.
 
 ### Inputs
 
@@ -104,7 +271,7 @@ export class MyComponent {
 | `showTodayMarker` | `boolean` | `true` | Show today indicator line |
 | `showGrid` | `boolean` | `true` | Show grid lines |
 | `collapsible` | `boolean` | `true` | Allow tree collapse/expand |
-| `snapTo` | `'none' \| 'day' \| 'hour'` | `'day'` | Snap granularity for drag |
+| `snapTo` | `'day' \| 'week' \| 'month'` | `'day'` | Snap granularity for drag and resize |
 | `locale` | `string` | `'en-US'` | Locale for date formatting |
 
 ### GanttTask
@@ -134,11 +301,20 @@ ngx-gantt-chart {
   --ngx-gantt-bar-progress-bg: #1e8449;
   --ngx-gantt-today-color: #e74c3c;
   --ngx-gantt-header-bg: #2c3e50;
-  --ngx-gantt-header-text-color: #ecf0f1;
+  --ngx-gantt-text: #ecf0f1;
 }
 ```
 
-All available CSS custom properties: `--ngx-gantt-bg`, `--ngx-gantt-border-color`, `--ngx-gantt-grid-line-color`, `--ngx-gantt-weekend-bg`, `--ngx-gantt-header-bg`, `--ngx-gantt-header-text-color`, `--ngx-gantt-bar-bg`, `--ngx-gantt-bar-progress-bg`, `--ngx-gantt-bar-text-color`, `--ngx-gantt-milestone-color`, `--ngx-gantt-arrow-color`, `--ngx-gantt-today-color`, `--ngx-gantt-sidebar-bg`, `--ngx-gantt-sidebar-hover-bg`, `--ngx-gantt-focus-ring-color`, `--ngx-gantt-font-family`, `--ngx-gantt-font-size`, `--ngx-gantt-header-font-size`.
+Common Gantt custom properties include `--ngx-gantt-bg`, `--ngx-gantt-border`, `--ngx-gantt-grid-line`, `--ngx-gantt-header-bg`, `--ngx-gantt-text`, `--ngx-gantt-bar-bg`, `--ngx-gantt-bar-progress-bg`, and `--ngx-gantt-today-color`.
+
+Other component groups expose their own CSS variable namespaces as well:
+
+- Inputs: `--ngx-input-*`
+- Charts: `--ngx-chart-*`
+- Grid: `--ngx-grid-*`
+- Tree/List: `--ngx-tree-*`, `--ngx-list-*`
+- Tooltip/Popover: `--ngx-tooltip-*`, `--ngx-popover-*`
+- Buttons and chips: `--ngx-btn-*`, `--ngx-chip-*`
 
 ## Public Methods
 
@@ -152,6 +328,10 @@ this.gantt.scrollToTask('task-42');
 this.gantt.expandAll();
 this.gantt.collapseAll();
 ```
+
+## Demo Application
+
+The repository includes a demo app under `projects/demo` covering live examples, how-to snippets, and API reference tables for the library components.
 
 ## License
 
