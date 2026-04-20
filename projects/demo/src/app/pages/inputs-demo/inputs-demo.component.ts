@@ -425,9 +425,10 @@ interface ApiRow { name: string; type: string; default: string; description: str
             <div class="demo-card">
               <div class="demo-card-title">Numeric Inputs</div>
               <div class="input-stack">
-                <ngx-numeric-textbox label="Quantity" [min]="0" [max]="100" [step]="1" (valueChange)="quantity.set($event)" />
-                <ngx-numeric-textbox label="Price" prefix="$" [min]="0" [max]="10000" [step]="0.5" (valueChange)="price.set($event)" />
+                <ngx-numeric-textbox [value]="quantity()" label="Quantity" [min]="0" [max]="100" [step]="1" (valueChange)="quantity.set($event)" />
+                <ngx-numeric-textbox [value]="price()" label="Price" prefix="$" [min]="0" [max]="10000" [step]="0.5" suffix="USD" (valueChange)="price.set($event)" />
               </div>
+              <div class="demo-note">Use the spinner buttons or press the up and down arrow keys while the input is focused.</div>
               <div class="value-display">Quantity: {{ quantity() }} · Price: &#36;{{ price() }}</div>
             </div>
           </div>
@@ -514,12 +515,14 @@ interface ApiRow { name: string; type: string; default: string; description: str
           <div class="demo-cards-grid">
             <div class="demo-card">
               <div class="demo-card-title">Meeting Time</div>
-              <ngx-time-picker label="24h Time" (timeChange)="time24.set($event)" />
+              <ngx-time-picker [value]="time24()" label="24h Time" (timeChange)="time24.set($event)" />
+              <div class="demo-note">Type a value like 14:30 or fine tune it with the hour and minute selectors.</div>
               <div class="value-display">Time: {{ time24() }}</div>
             </div>
             <div class="demo-card">
               <div class="demo-card-title">12h Format</div>
-              <ngx-time-picker label="12h Time" [use12h]="true" (timeChange)="time12.set($event)" />
+              <ngx-time-picker [value]="time12()" label="12h Time" [use12h]="true" (timeChange)="time12.set($event)" />
+              <div class="demo-note">Manual entry also accepts values like 2:45 PM and normalizes the emitted output to HH:mm.</div>
               <div class="value-display">Time: {{ time12() }}</div>
             </div>
           </div>
@@ -619,6 +622,7 @@ interface ApiRow { name: string; type: string; default: string; description: str
     .demo-card-title::before { content: ''; display: inline-block; width: 3px; height: 16px; background: linear-gradient(180deg, #1a73e8, #8ab4f8); border-radius: 2px; }
     
     .input-stack { display: flex; flex-direction: column; gap: 14px; }
+    .demo-note { font-size: 12px; color: #6c757d; line-height: 1.5; }
     
     .value-display { margin-top: 14px; padding: 12px 14px; background: linear-gradient(135deg, #f8f9fa 0%, #f3f5f9 100%); border-radius: 6px; font-size: 12px; font-family: 'Courier New', monospace; color: #495057; border-left: 3px solid #1a73e8; transition: all 0.2s ease; }
     .value-display:hover { border-left-color: #ff6b6b; transform: translateX(2px); }
@@ -681,12 +685,12 @@ export class InputsDemoComponent {
   switchMedium = signal(false);
   switchLarge = signal(false);
   ratingValue = signal(0);
-  quantity = signal(0);
-  price = signal(0);
+  quantity = signal(12);
+  price = signal(249.5);
   description = signal('');
   accentColor = signal('#1a73e8');
-  time24 = signal('');
-  time12 = signal('');
+  time24 = signal('14:30');
+  time12 = signal('14:30');
   selectedRange = signal<{ start: string; end: string }>({ start: '', end: '' });
 
   countries: DropdownOption[] = [
@@ -1090,6 +1094,7 @@ export class MyComponent {
   imports: [NumericTextBoxComponent],
   template: \`
     <ngx-numeric-textbox
+      [value]="quantity()"
       label="Quantity"
       [min]="0"
       [max]="100"
@@ -1142,6 +1147,7 @@ export class MyComponent {
   imports: [TimePickerComponent],
   template: \`
     <ngx-time-picker
+      [value]="time()"
       label="Meeting Time"
       [use12h]="true"
       (timeChange)="time.set($event)"
@@ -1198,6 +1204,7 @@ export class MyComponent {
 
   numericTextBoxApi: ApiRow[] = [
     { name: 'label', type: 'string', default: "''", description: 'Label text shown above the numeric input.' },
+    { name: 'value', type: 'number', default: '0', description: 'Controlled numeric value displayed in the input.' },
     { name: 'min', type: 'number', default: '-Infinity', description: 'Minimum allowed value.' },
     { name: 'max', type: 'number', default: 'Infinity', description: 'Maximum allowed value.' },
     { name: 'step', type: 'number', default: '1', description: 'Increment or decrement amount.' },
@@ -1227,8 +1234,9 @@ export class MyComponent {
 
   timePickerApi: ApiRow[] = [
     { name: 'label', type: 'string', default: "''", description: 'Label shown above the time picker.' },
+    { name: 'value', type: 'string', default: "'09:00'", description: 'Controlled time value. Accepts HH:mm or h:mm AM/PM input.' },
     { name: 'use12h', type: 'boolean', default: 'false', description: 'Uses 12-hour display with AM/PM selector.' },
-    { name: '(timeChange)', type: 'string', default: '—', description: 'Emitted with the selected time as HH:mm.' },
+    { name: '(timeChange)', type: 'string', default: '—', description: 'Emitted with the selected time as HH:mm, even in 12-hour mode.' },
   ];
 
   dateRangePickerApi: ApiRow[] = [

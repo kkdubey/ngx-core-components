@@ -596,11 +596,11 @@ export class HomeComponent {
     {
       icon: '🗂️',
       title: 'Data Grid',
-      description: 'Full-featured HTML table with client-side sorting, column filtering, pagination and row selection.',
+      description: 'Enterprise data grid with client/server operations, grouping, templates, nested rows, and inline editing.',
       route: '/grid',
       tag: 'Data',
       tagColor: '#e67e22',
-      features: ['Sort', 'Filter', 'Paginate', 'Selection', 'Striped', 'Loading'],
+      features: ['Client/Server', 'Grouping', 'Templates', 'Nested row', 'Inline edit', 'Selection'],
     },
     {
       icon: '🌳',
@@ -702,27 +702,55 @@ export class MyComponent {
     },
     {
       title: 'Data Grid',
-      code: `import { DataGridComponent, GridColumnDef } from 'ngx-core-components';
+      code: `import {
+  DataGridComponent,
+  GridColumnDef,
+  GridDataStateChangeEvent,
+} from 'ngx-core-components';
 
 @Component({
   imports: [DataGridComponent],
   template: \`
     <ngx-data-grid
-      [data]="rows"
+      [data]="pageRows"
       [columns]="columns"
+      [page]="page"
       [pageSize]="10"
+      [total]="total"
+      [sortMode]="'server'"
+      [filterMode]="'server'"
+      [groupMode]="'server'"
+      [pagingMode]="'server'"
+      [groupBy]="group"
+      [groupedData]="groupedRows"
       [selectable]="true"
-      (rowClick)="onRowClick($event)"
+      [editable]="true"
+      [detailRowTemplate]="detailTpl"
+      (dataStateChange)="onDataStateChange($event)"
+      (rowUpdate)="onRowUpdate($event)"
     />
   \`
 })
 export class MyComponent {
+  page = 1;
+  total = 0;
+  pageRows = [];
+  groupedRows = [];
+  group: { field: string; dir?: 'asc' | 'desc' } | null = { field: 'department', dir: 'asc' };
+
   columns: GridColumnDef[] = [
-    { field: 'name', title: 'Name', sortable: true, filterable: true },
-    { field: 'email', title: 'Email', filterable: true },
-    { field: 'status', title: 'Status', sortable: true },
+    { field: 'name', title: 'Name', sortable: true, filterable: true, editable: true },
+    { field: 'department', title: 'Department', sortable: true, filterable: true, groupable: true },
+    { field: 'salary', title: 'Salary', sortable: true, align: 'right', editable: true },
   ];
-  rows = [...]; // your data
+
+  onDataStateChange(state: GridDataStateChangeEvent): void {
+    // call API with page, sort, filters, grouping
+  }
+
+  onRowUpdate(event: any): void {
+    // persist inline edit changes
+  }
 }`,
     },
     {

@@ -48,10 +48,21 @@ export { ZoomLevel, DependencyType } from 'ngx-core-components/charts';
 export { DataGridComponent } from 'ngx-core-components/grid';
 export type {
   GridColumnDef,
+  GridFilterState,
+  GridGroupState,
+  GridGroupResult,
   GridSortState,
   GridPageChangeEvent,
   GridSortChangeEvent,
+  GridFilterChangeEvent,
+  GridGroupChangeEvent,
+  GridDataStateChangeEvent,
   GridRowClickEvent,
+  GridRowUpdateEvent,
+  GridHeaderTemplateContext,
+  GridCellTemplateContext,
+  GridRowTemplateContext,
+  GridDetailTemplateContext,
 } from 'ngx-core-components/grid';
 
 // ===== Hierarchical Views (also available via ngx-core-components/views) =====
@@ -61,6 +72,7 @@ export { ListViewComponent } from 'ngx-core-components/views';
 export type {
   ListViewItemClickEvent,
   ListViewSelectionEvent,
+  ListViewPageChangeEvent,
 } from 'ngx-core-components/views';
 
 // ===== Dialog (also available via ngx-core-components/dialog) =====

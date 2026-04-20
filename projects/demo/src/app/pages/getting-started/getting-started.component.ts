@@ -98,6 +98,16 @@ import { Component } from '@angular/core';
           <h2>10. Dependency Model</h2>
           <pre class="code-block"><code>{{ depModelCode }}</code></pre>
         </section>
+
+        <section class="doc-section">
+          <h2>11. Structured Inputs Example</h2>
+          <pre class="code-block"><code>{{ inputsExampleCode }}</code></pre>
+        </section>
+
+        <section class="doc-section">
+          <h2>12. Data Grid Enterprise Example</h2>
+          <pre class="code-block"><code>{{ dataGridExampleCode }}</code></pre>
+        </section>
       </div>
     </div>
   `,
@@ -252,5 +262,89 @@ interface GanttDependency {
   type: DependencyType;
   color?: string;
   cssClass?: string;
+}`;
+
+  inputsExampleCode = `import { Component, signal } from '@angular/core';
+import { NumericTextBoxComponent, TimePickerComponent } from 'ngx-core-components/inputs';
+
+@Component({
+  standalone: true,
+  imports: [NumericTextBoxComponent, TimePickerComponent],
+  template: \`
+    <ngx-numeric-textbox
+      [value]="quantity()"
+      label="Quantity"
+      [min]="0"
+      [max]="50"
+      [step]="1"
+      (valueChange)="quantity.set($event)"
+    />
+
+    <ngx-time-picker
+      [value]="meetingTime()"
+      label="Meeting Time"
+      [use12h]="true"
+      (timeChange)="meetingTime.set($event)"
+    />
+  \`,
+})
+export class MyInputsComponent {
+  quantity = signal(3);
+  meetingTime = signal('14:30');
+}`;
+
+  dataGridExampleCode = `import {
+  Component,
+  signal,
+} from '@angular/core';
+import {
+  DataGridComponent,
+  GridColumnDef,
+  GridDataStateChangeEvent,
+  GridGroupState,
+} from 'ngx-core-components';
+
+@Component({
+  standalone: true,
+  imports: [DataGridComponent],
+  template: \`
+    <ngx-data-grid
+      [data]="rows()"
+      [columns]="columns"
+      [page]="page()"
+      [pageSize]="10"
+      [total]="total()"
+      [sortMode]="'server'"
+      [filterMode]="'server'"
+      [groupMode]="'server'"
+      [pagingMode]="'server'"
+      [groupBy]="group()"
+      [groupedData]="groupedRows()"
+      [editable]="true"
+      (dataStateChange)="onDataStateChange($event)"
+      (rowUpdate)="onRowUpdate($event)"
+    />
+  \`,
+})
+export class MyGridComponent {
+  page = signal(1);
+  total = signal(0);
+  rows = signal<any[]>([]);
+  groupedRows = signal<any[]>([]);
+  group = signal<GridGroupState | null>({ field: 'department', dir: 'asc' });
+
+  columns: GridColumnDef[] = [
+    { field: 'name', title: 'Name', sortable: true, filterable: true, editable: true },
+    { field: 'department', title: 'Department', sortable: true, filterable: true, groupable: true },
+    { field: 'salary', title: 'Salary', sortable: true, align: 'right', editable: true },
+  ];
+
+  onDataStateChange(state: GridDataStateChangeEvent): void {
+    // Call backend with state.page/state.sort/state.filters/state.group
+  }
+
+  onRowUpdate(event: any): void {
+    // Save inline edits
+  }
 }`;
 }

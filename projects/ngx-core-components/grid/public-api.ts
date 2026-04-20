@@ -5,8 +5,19 @@
 export { DataGridComponent } from './data-grid/data-grid.component';
 export type {
   GridColumnDef,
+  GridFilterState,
+  GridGroupState,
+  GridGroupResult,
   GridSortState,
   GridPageChangeEvent,
   GridSortChangeEvent,
+  GridFilterChangeEvent,
+  GridGroupChangeEvent,
+  GridDataStateChangeEvent,
   GridRowClickEvent,
+  GridRowUpdateEvent,
+  GridHeaderTemplateContext,
+  GridCellTemplateContext,
+  GridRowTemplateContext,
+  GridDetailTemplateContext,
 } from './data-grid/data-grid.component';

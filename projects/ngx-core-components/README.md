@@ -211,6 +211,99 @@ export class MyFormComponent {
 }
 ```
 
+### Structured Inputs
+
+```typescript
+import { Component, signal } from '@angular/core';
+import { NumericTextBoxComponent, TimePickerComponent } from 'ngx-core-components/inputs';
+
+@Component({
+  standalone: true,
+  imports: [NumericTextBoxComponent, TimePickerComponent],
+  template: `
+    <ngx-numeric-textbox
+      [value]="quantity()"
+      label="Quantity"
+      [min]="0"
+      [max]="25"
+      [step]="1"
+      (valueChange)="quantity.set($event)"
+    />
+
+    <ngx-time-picker
+      [value]="meetingTime()"
+      label="Meeting Time"
+      [use12h]="true"
+      (timeChange)="meetingTime.set($event)"
+    />
+  `,
+})
+export class MyStructuredInputsComponent {
+  quantity = signal(3);
+  meetingTime = signal('14:30');
+}
+```
+
+`NumericTextBoxComponent` supports controlled values and keyboard stepping with the up and down arrow keys. `TimePickerComponent` accepts typed input such as `14:30` or `2:30 PM` and normalizes emitted values to `HH:mm`.
+
+### List View
+
+```typescript
+import { Component, computed, signal } from '@angular/core';
+import { ListViewComponent, type ListViewPageChangeEvent } from 'ngx-core-components/views';
+
+@Component({
+  standalone: true,
+  imports: [ListViewComponent],
+  template: `
+    <ngx-list-view
+      [items]="filteredPeople()"
+      [pageSize]="5"
+      [selectable]="true"
+      (pageChange)="onPageChange($event)"
+      (selectionChange)="selected.set($event.selectedItems)"
+    />
+  `,
+})
+export class MyListComponent {
+  search = signal('');
+  selected = signal<unknown[]>([]);
+  people = [
+    { name: 'Alice', dept: 'Engineering' },
+    { name: 'Bob', dept: 'Product' },
+  ];
+
+  filteredPeople = computed(() => this.people);
+
+  onPageChange(event: ListViewPageChangeEvent): void {
+    console.log(event.page, event.totalPages);
+  }
+}
+```
+
+### Splitter
+
+```typescript
+import { Component, signal } from '@angular/core';
+import { SplitterComponent } from 'ngx-core-components/layout';
+
+@Component({
+  standalone: true,
+  imports: [SplitterComponent],
+  template: `
+    <div style="height: 320px; border: 1px solid #e9ecef; overflow: hidden;">
+      <ngx-splitter [size]="paneSize()" [min]="180" (sizeChange)="paneSize.set($event)">
+        <div pane1>Navigation</div>
+        <div pane2>Content</div>
+      </ngx-splitter>
+    </div>
+  `,
+})
+export class MyLayoutComponent {
+  paneSize = signal('35%');
+}
+```
+
 ### Data Grid
 
 ```typescript
@@ -239,6 +332,58 @@ export class MyGridComponent {
 ## API
 
 This README focuses on the primary Gantt API because it is the largest surface in the package. The demo application under `projects/demo` shows usage and API reference coverage for the other components.
+
+### Notable Secondary APIs
+
+#### ListView Inputs
+
+| Input | Type | Default | Description |
+|-------|------|---------|-------------|
+| `items` | `T[]` | `[]` | Items rendered in the list. |
+| `labelField` | `string` | `'label'` | Field used by the default item renderer. |
+| `selectable` | `boolean` | `true` | Enables row selection. |
+| `multiselect` | `boolean` | `false` | Allows multi-selection. |
+| `loading` | `boolean` | `false` | Shows the loading state. |
+| `pageSize` | `number` | `0` | Enables built-in pagination when greater than `0`. |
+
+#### ListView Outputs
+
+| Output | Type | Description |
+|--------|------|-------------|
+| `itemClick` | `ListViewItemClickEvent<T>` | Fired when an item is clicked. |
+| `selectionChange` | `ListViewSelectionEvent<T>` | Fired when selected items change. |
+| `pageChange` | `ListViewPageChangeEvent` | Fired when the built-in pager changes pages. |
+
+#### NumericTextBox Inputs
+
+| Input | Type | Default | Description |
+|-------|------|---------|-------------|
+| `value` | `number` | `0` | Controlled numeric value displayed in the input. |
+| `min` | `number` | `-Infinity` | Lower bound for allowed values. |
+| `max` | `number` | `Infinity` | Upper bound for allowed values. |
+| `step` | `number` | `1` | Increment and decrement amount. |
+
+#### TimePicker Inputs
+
+| Input | Type | Default | Description |
+|-------|------|---------|-------------|
+| `value` | `string` | `'09:00'` | Controlled time value. Accepts `HH:mm` or `h:mm AM/PM`. |
+| `use12h` | `boolean` | `false` | Shows AM/PM controls while still emitting `HH:mm`. |
+
+#### Splitter Inputs
+
+| Input | Type | Default | Description |
+|-------|------|---------|-------------|
+| `size` | `string \| number` | `null` | Controlled size of the first pane in pixels or percent. |
+| `initialSize` | `string \| number` | `'50%'` | Initial pane size when uncontrolled. |
+| `min` | `number` | `60` | Minimum size of the first pane in pixels. |
+| `orientation` | `'horizontal' \| 'vertical'` | `'horizontal'` | Split direction. |
+
+#### Splitter Outputs
+
+| Output | Type | Description |
+|--------|------|-------------|
+| `sizeChange` | `string` | Fired while the divider is dragged. |
 
 ### Inputs
 

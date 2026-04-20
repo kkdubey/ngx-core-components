@@ -1,29 +1,127 @@
 import {
-  Component, ChangeDetectionStrategy, input, output, signal, computed
+  ChangeDetectionStrategy,
+  Component,
+  TemplateRef,
+  computed,
+  effect,
+  input,
+  output,
+  signal,
 } from '@angular/core';
+import { NgTemplateOutlet } from '@angular/common';
 
-export interface GridColumnDef {
+export interface GridColumnDef<T = Record<string, unknown>> {
   field: string;
   title: string;
   width?: number;
   sortable?: boolean;
   filterable?: boolean;
+  groupable?: boolean;
+  editable?: boolean;
   align?: 'left' | 'center' | 'right';
+  headerTemplate?: TemplateRef<GridHeaderTemplateContext<T>>;
+  cellTemplate?: TemplateRef<GridCellTemplateContext<T>>;
 }
 
-export interface GridSortState { field: string; dir: 'asc' | 'desc'; }
-export interface GridPageChangeEvent { page: number; pageSize: number; }
-export interface GridSortChangeEvent { sort: GridSortState | null; }
-export interface GridRowClickEvent<T = Record<string, unknown>> { row: T; index: number; }
+export interface GridSortState {
+  field: string;
+  dir: 'asc' | 'desc';
+}
+
+export interface GridFilterState {
+  field: string;
+  value: string;
+  operator?: 'contains' | 'startsWith' | 'endsWith' | 'eq';
+}
+
+export interface GridGroupState {
+  field: string;
+  dir?: 'asc' | 'desc';
+}
+
+export interface GridPageChangeEvent {
+  page: number;
+  pageSize: number;
+}
+
+export interface GridSortChangeEvent {
+  sort: GridSortState | null;
+}
+
+export interface GridFilterChangeEvent {
+  filters: GridFilterState[];
+}
+
+export interface GridGroupChangeEvent {
+  group: GridGroupState | null;
+}
+
+export interface GridDataStateChangeEvent {
+  page: number;
+  pageSize: number;
+  sort: GridSortState | null;
+  filters: GridFilterState[];
+  group: GridGroupState | null;
+}
+
+export interface GridRowClickEvent<T = Record<string, unknown>> {
+  row: T;
+  index: number;
+}
+
+export interface GridRowUpdateEvent<T = Record<string, unknown>> {
+  previous: T;
+  updated: T;
+  index: number;
+}
+
+export interface GridGroupResult<T = Record<string, unknown>> {
+  key: string;
+  value: unknown;
+  field: string;
+  count: number;
+  items: T[];
+}
+
+export interface GridHeaderTemplateContext<T = Record<string, unknown>> {
+  $implicit: GridColumnDef<T>;
+  column: GridColumnDef<T>;
+  sort: GridSortState | null;
+  filters: GridFilterState[];
+  isServerMode: boolean;
+}
+
+export interface GridCellTemplateContext<T = Record<string, unknown>> {
+  $implicit: unknown;
+  value: unknown;
+  row: T;
+  column: GridColumnDef<T>;
+  index: number;
+  editing: boolean;
+}
+
+export interface GridRowTemplateContext<T = Record<string, unknown>> {
+  $implicit: T;
+  row: T;
+  index: number;
+  editing: boolean;
+  expanded: boolean;
+}
+
+export interface GridDetailTemplateContext<T = Record<string, unknown>> {
+  $implicit: T;
+  row: T;
+  index: number;
+}
 
 @Component({
   selector: 'ngx-data-grid',
   standalone: true,
+  imports: [NgTemplateOutlet],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="ngx-data-grid" [class.loading]="loading()">
 
-      <!-- Filter row (above table) if any column is filterable -->
       @if (hasFilterableColumns()) {
         <div class="grid-filter-bar">
           @for (col of columns(); track col.field) {
@@ -42,11 +140,13 @@ export interface GridRowClickEvent<T = Record<string, unknown>> { row: T; index:
         </div>
       }
 
-      <!-- Table -->
       <div class="grid-table-wrap">
         <table class="grid-table" [class.striped]="striped()">
           <thead>
             <tr>
+              @if (showDetailToggle()) {
+                <th class="grid-th grid-th-toggle" style="width:36px"></th>
+              }
               @if (selectable()) {
                 <th class="grid-th grid-th-check" style="width:40px">
                   <input type="checkbox" [checked]="allSelected()" [indeterminate]="someSelected() && !allSelected()" (change)="toggleAll()" />
@@ -61,59 +161,229 @@ export interface GridRowClickEvent<T = Record<string, unknown>> { row: T; index:
                   [class.sort-desc]="sortState()?.field === col.field && sortState()?.dir === 'desc'"
                   (click)="col.sortable ? onSort(col) : null"
                 >
-                  <span class="th-text">{{ col.title }}</span>
-                  @if (col.sortable) {
-                    <span class="sort-icon">
-                      @if (sortState()?.field === col.field) {
-                        {{ sortState()?.dir === 'asc' ? '↑' : '↓' }}
-                      } @else { ↕ }
-                    </span>
+                  @if (resolveHeaderTemplate(col); as activeHeaderTemplate) {
+                    <ng-container *ngTemplateOutlet="activeHeaderTemplate; context: {
+                      $implicit: col,
+                      column: col,
+                      sort: sortState(),
+                      filters: activeFilters(),
+                      isServerMode: isAnyServerMode()
+                    }" />
+                  } @else {
+                    <span class="th-text">{{ col.title }}</span>
+                    @if (col.sortable) {
+                      <span class="sort-icon">
+                        @if (sortState()?.field === col.field) {
+                          {{ sortState()?.dir === 'asc' ? '↑' : '↓' }}
+                        } @else { ↕ }
+                      </span>
+                    }
                   }
                 </th>
+              }
+              @if (editable()) {
+                <th class="grid-th" style="width:120px">Actions</th>
               }
             </tr>
           </thead>
           <tbody>
             @if (loading()) {
               <tr>
-                <td [attr.colspan]="columns().length + (selectable() ? 1 : 0)" class="grid-loading-cell">
+                <td [attr.colspan]="renderColumnCount()" class="grid-loading-cell">
                   <div class="grid-spinner"></div>
                 </td>
               </tr>
-            } @else if (pagedData().length === 0) {
+            } @else if (flatRenderedRows().length === 0 && groupedRows().length === 0) {
               <tr>
-                <td [attr.colspan]="columns().length + (selectable() ? 1 : 0)" class="grid-empty-cell">No data found.</td>
+                <td [attr.colspan]="renderColumnCount()" class="grid-empty-cell">No data found.</td>
               </tr>
+            } @else if (groupedRows().length > 0) {
+              @for (group of groupedRows(); track group.key) {
+                <tr class="grid-group-row" (click)="toggleGroup(group.key)">
+                  <td [attr.colspan]="renderColumnCount()">
+                    <button class="group-toggle" type="button" (click)="toggleGroup(group.key); $event.stopPropagation()">
+                      {{ isGroupCollapsed(group.key) ? '▸' : '▾' }}
+                    </button>
+                    <strong>{{ group.field }}</strong>: {{ group.value }}
+                    <span class="group-count">({{ group.count }})</span>
+                  </td>
+                </tr>
+
+                @if (!isGroupCollapsed(group.key)) {
+                  @for (row of group.items; track getKey(row, $index); let i = $index) {
+                    <tr
+                      class="grid-row"
+                      [class.selected]="isRowSelected(row)"
+                      (click)="onRowClick(row, i)"
+                      (dblclick)="editable() ? beginEdit(row, i) : null"
+                    >
+                      @if (showDetailToggle()) {
+                        <td class="grid-td grid-td-toggle">
+                          <button class="toggle-btn" type="button" (click)="toggleDetail(row); $event.stopPropagation()">
+                            {{ isExpanded(row) ? '▾' : '▸' }}
+                          </button>
+                        </td>
+                      }
+
+                      @if (selectable()) {
+                        <td class="grid-td grid-td-check">
+                          <input type="checkbox" [checked]="isRowSelected(row)" (change)="toggleRow(row)" (click)="$event.stopPropagation()" />
+                        </td>
+                      }
+
+                      @if (rowTemplate()) {
+                        <td class="grid-td" [attr.colspan]="columns().length + (editable() ? 1 : 0)">
+                          <ng-container *ngTemplateOutlet="rowTemplate(); context: {
+                            $implicit: row,
+                            row: row,
+                            index: i,
+                            editing: isEditing(row),
+                            expanded: isExpanded(row)
+                          }" />
+                        </td>
+                      } @else {
+                        @for (col of columns(); track col.field) {
+                          <td class="grid-td" [style.text-align]="col.align ?? 'left'">
+                            @if (isEditing(row) && editable() && col.editable) {
+                              <input
+                                class="grid-edit-input"
+                                [value]="toStringSafe(getDraftValue(row, col.field))"
+                                (input)="updateDraft(col.field, $any($event.target).value)"
+                                (click)="$event.stopPropagation()"
+                              />
+                            } @else if (resolveCellTemplate(col)) {
+                              <ng-container *ngTemplateOutlet="resolveCellTemplate(col)!; context: {
+                                $implicit: getCellValue(row, col.field),
+                                value: getCellValue(row, col.field),
+                                row: row,
+                                column: col,
+                                index: i,
+                                editing: isEditing(row)
+                              }" />
+                            } @else {
+                              {{ getCellValue(row, col.field) }}
+                            }
+                          </td>
+                        }
+
+                        @if (editable()) {
+                          <td class="grid-td grid-actions">
+                            @if (!isEditing(row)) {
+                              <button class="action-btn" type="button" (click)="beginEdit(row, i); $event.stopPropagation()">Edit</button>
+                            } @else {
+                              <button class="action-btn save" type="button" (click)="saveEdit(row, i); $event.stopPropagation()">Save</button>
+                              <button class="action-btn" type="button" (click)="cancelEdit(); $event.stopPropagation()">Cancel</button>
+                            }
+                          </td>
+                        }
+                      }
+                    </tr>
+
+                    @if (showDetailToggle() && isExpanded(row) && detailRowTemplate()) {
+                      <tr class="grid-detail-row">
+                        <td [attr.colspan]="renderColumnCount()" class="grid-detail-cell">
+                          <ng-container *ngTemplateOutlet="detailRowTemplate(); context: {
+                            $implicit: row,
+                            row: row,
+                            index: i
+                          }" />
+                        </td>
+                      </tr>
+                    }
+                  }
+                }
+              }
             } @else {
-              @for (row of pagedData(); track getKey(row, $index); let i = $index) {
+              @for (row of flatRenderedRows(); track getKey(row, $index); let i = $index) {
                 <tr
                   class="grid-row"
                   [class.selected]="isRowSelected(row)"
                   (click)="onRowClick(row, i)"
+                  (dblclick)="editable() ? beginEdit(row, i) : null"
                 >
+                  @if (showDetailToggle()) {
+                    <td class="grid-td grid-td-toggle">
+                      <button class="toggle-btn" type="button" (click)="toggleDetail(row); $event.stopPropagation()">
+                        {{ isExpanded(row) ? '▾' : '▸' }}
+                      </button>
+                    </td>
+                  }
+
                   @if (selectable()) {
                     <td class="grid-td grid-td-check">
                       <input type="checkbox" [checked]="isRowSelected(row)" (change)="toggleRow(row)" (click)="$event.stopPropagation()" />
                     </td>
                   }
-                  @for (col of columns(); track col.field) {
-                    <td class="grid-td" [style.text-align]="col.align ?? 'left'">
-                      {{ getCellValue(row, col.field) }}
+
+                  @if (rowTemplate()) {
+                    <td class="grid-td" [attr.colspan]="columns().length + (editable() ? 1 : 0)">
+                      <ng-container *ngTemplateOutlet="rowTemplate(); context: {
+                        $implicit: row,
+                        row: row,
+                        index: i,
+                        editing: isEditing(row),
+                        expanded: isExpanded(row)
+                      }" />
                     </td>
+                  } @else {
+                    @for (col of columns(); track col.field) {
+                      <td class="grid-td" [style.text-align]="col.align ?? 'left'">
+                        @if (isEditing(row) && editable() && col.editable) {
+                          <input
+                            class="grid-edit-input"
+                            [value]="toStringSafe(getDraftValue(row, col.field))"
+                            (input)="updateDraft(col.field, $any($event.target).value)"
+                            (click)="$event.stopPropagation()"
+                          />
+                        } @else if (resolveCellTemplate(col)) {
+                          <ng-container *ngTemplateOutlet="resolveCellTemplate(col)!; context: {
+                            $implicit: getCellValue(row, col.field),
+                            value: getCellValue(row, col.field),
+                            row: row,
+                            column: col,
+                            index: i,
+                            editing: isEditing(row)
+                          }" />
+                        } @else {
+                          {{ getCellValue(row, col.field) }}
+                        }
+                      </td>
+                    }
+
+                    @if (editable()) {
+                      <td class="grid-td grid-actions">
+                        @if (!isEditing(row)) {
+                          <button class="action-btn" type="button" (click)="beginEdit(row, i); $event.stopPropagation()">Edit</button>
+                        } @else {
+                          <button class="action-btn save" type="button" (click)="saveEdit(row, i); $event.stopPropagation()">Save</button>
+                          <button class="action-btn" type="button" (click)="cancelEdit(); $event.stopPropagation()">Cancel</button>
+                        }
+                      </td>
+                    }
                   }
                 </tr>
+
+                @if (showDetailToggle() && isExpanded(row) && detailRowTemplate()) {
+                  <tr class="grid-detail-row">
+                    <td [attr.colspan]="renderColumnCount()" class="grid-detail-cell">
+                      <ng-container *ngTemplateOutlet="detailRowTemplate(); context: {
+                        $implicit: row,
+                        row: row,
+                        index: i
+                      }" />
+                    </td>
+                  </tr>
+                }
               }
             }
           </tbody>
         </table>
       </div>
 
-      <!-- Pagination -->
-      @if (pagedData().length > 0 || totalFiltered() > 0) {
+      @if (showPager()) {
         <div class="grid-pagination">
           <span class="page-info">
-            {{ (currentPage() - 1) * pageSize() + 1 }}–{{ Math.min(currentPage() * pageSize(), totalFiltered()) }}
-            of {{ totalFiltered() }}
+            {{ pagerRangeStart() }}–{{ pagerRangeEnd() }} of {{ totalItems() }}
           </span>
           <div class="page-btns">
             <button class="page-btn" [disabled]="currentPage() === 1" (click)="goPage(1)">&#171;</button>
@@ -129,29 +399,43 @@ export interface GridRowClickEvent<T = Record<string, unknown>> { row: T; index:
     </div>
   `,
   styles: [`
-    :host {
-      display: block;
-    }
+    :host { display: block; }
     .ngx-data-grid {
-      font-family: inherit; border: 1px solid var(--ngx-grid-border, #dee2e6);
-      border-radius: var(--ngx-grid-radius, 4px); overflow: hidden; background: var(--ngx-grid-bg, #fff);
+      font-family: inherit;
+      border: 1px solid var(--ngx-grid-border, #dee2e6);
+      border-radius: var(--ngx-grid-radius, 4px);
+      overflow: hidden;
+      background: var(--ngx-grid-bg, #fff);
     }
     .grid-filter-bar {
-      display: flex; gap: 8px; padding: 8px 12px;
-      background: var(--ngx-grid-header-bg, #f1f3f5); border-bottom: 1px solid var(--ngx-grid-border, #dee2e6);
+      display: flex;
+      gap: 8px;
+      padding: 8px 12px;
+      background: var(--ngx-grid-header-bg, #f1f3f5);
+      border-bottom: 1px solid var(--ngx-grid-border, #dee2e6);
     }
     .grid-filter-input {
-      padding: 4px 8px; border: 1px solid var(--ngx-grid-border, #dee2e6); border-radius: 3px;
-      font-size: 12px; outline: none; font-family: inherit;
+      padding: 4px 8px;
+      border: 1px solid var(--ngx-grid-border, #dee2e6);
+      border-radius: 3px;
+      font-size: 12px;
+      outline: none;
+      font-family: inherit;
     }
     .grid-filter-input:focus { border-color: #4a90d9; }
     .grid-filter-spacer { flex-shrink: 0; }
     .grid-table-wrap { overflow-x: auto; }
     .grid-table { width: 100%; border-collapse: collapse; font-size: 13px; }
     .grid-th {
-      padding: 10px 12px; text-align: left; font-size: 12px; font-weight: 600;
-      color: var(--ngx-grid-text-secondary, #6c757d); background: var(--ngx-grid-header-bg, #f1f3f5);
-      border-bottom: 2px solid var(--ngx-grid-border, #dee2e6); white-space: nowrap; user-select: none;
+      padding: 10px 12px;
+      text-align: left;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--ngx-grid-text-secondary, #6c757d);
+      background: var(--ngx-grid-header-bg, #f1f3f5);
+      border-bottom: 2px solid var(--ngx-grid-border, #dee2e6);
+      white-space: nowrap;
+      user-select: none;
     }
     .grid-th.sortable { cursor: pointer; }
     .grid-th.sortable:hover { background: #e9ecef; }
@@ -159,148 +443,593 @@ export interface GridRowClickEvent<T = Record<string, unknown>> { row: T; index:
     .th-text { margin-right: 4px; }
     .sort-icon { font-size: 10px; color: #adb5bd; }
     .sort-asc .sort-icon, .sort-desc .sort-icon { color: #4a90d9; }
-    .grid-row { border-bottom: 1px solid var(--ngx-grid-border, #dee2e6); cursor: default; transition: background 0.1s; }
+    .grid-group-row td {
+      background: #f8f9fa;
+      border-bottom: 1px solid #e9ecef;
+      color: #495057;
+      font-size: 12px;
+      padding: 9px 12px;
+      cursor: pointer;
+    }
+    .group-toggle {
+      border: none;
+      background: transparent;
+      margin-right: 6px;
+      cursor: pointer;
+      color: #6c757d;
+    }
+    .group-count { color: #6c757d; margin-left: 4px; }
+    .grid-row {
+      border-bottom: 1px solid var(--ngx-grid-border, #dee2e6);
+      transition: background 0.1s;
+    }
     .grid-row:hover { background: var(--ngx-grid-hover-bg, #f8f9fa); }
     .grid-row.selected { background: var(--ngx-grid-selected-bg, #e8f0fe); }
     .grid-table.striped .grid-row:nth-child(even) { background: #f8f9fa; }
     .grid-table.striped .grid-row:nth-child(even):hover { background: var(--ngx-grid-hover-bg, #f8f9fa); }
     .grid-table.striped .grid-row.selected { background: var(--ngx-grid-selected-bg, #e8f0fe) !important; }
-    .grid-td { padding: 9px 12px; color: var(--ngx-grid-text, #212529); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .grid-th-check, .grid-td-check { width: 40px !important; text-align: center; }
-    .grid-loading-cell, .grid-empty-cell { padding: 32px; text-align: center; color: var(--ngx-grid-text-secondary, #6c757d); }
+    .grid-td {
+      padding: 9px 12px;
+      color: var(--ngx-grid-text, #212529);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      vertical-align: middle;
+    }
+    .grid-th-check, .grid-td-check,
+    .grid-th-toggle, .grid-td-toggle {
+      width: 40px !important;
+      text-align: center;
+    }
+    .toggle-btn {
+      border: none;
+      background: transparent;
+      color: #6c757d;
+      cursor: pointer;
+      font-size: 13px;
+    }
+    .grid-detail-row td {
+      background: #fcfcfd;
+      border-bottom: 1px solid var(--ngx-grid-border, #dee2e6);
+    }
+    .grid-detail-cell {
+      padding: 12px 16px;
+      white-space: normal;
+    }
+    .grid-edit-input {
+      width: 100%;
+      min-width: 80px;
+      padding: 5px 8px;
+      border: 1px solid #ced4da;
+      border-radius: 4px;
+      font-size: 12px;
+      font-family: inherit;
+      box-sizing: border-box;
+    }
+    .grid-actions { white-space: nowrap; }
+    .action-btn {
+      border: 1px solid #ced4da;
+      background: #fff;
+      color: #495057;
+      border-radius: 4px;
+      padding: 4px 8px;
+      font-size: 12px;
+      margin-right: 6px;
+      cursor: pointer;
+    }
+    .action-btn.save {
+      border-color: #1a73e8;
+      background: #1a73e8;
+      color: #fff;
+    }
+    .action-btn:last-child { margin-right: 0; }
+    .grid-loading-cell, .grid-empty-cell {
+      padding: 32px;
+      text-align: center;
+      color: var(--ngx-grid-text-secondary, #6c757d);
+    }
     .grid-spinner {
-      width: 24px; height: 24px; border: 3px solid #dee2e6; border-top-color: #4a90d9;
-      border-radius: 50%; animation: spin 0.7s linear infinite; margin: 0 auto;
+      width: 24px;
+      height: 24px;
+      border: 3px solid #dee2e6;
+      border-top-color: #4a90d9;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      margin: 0 auto;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
     .grid-pagination {
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 8px 12px; border-top: 1px solid var(--ngx-grid-border, #dee2e6);
-      background: var(--ngx-grid-bg, #fff); flex-wrap: wrap; gap: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 12px;
+      border-top: 1px solid var(--ngx-grid-border, #dee2e6);
+      background: var(--ngx-grid-bg, #fff);
+      flex-wrap: wrap;
+      gap: 8px;
     }
     .page-info { font-size: 12px; color: var(--ngx-grid-text-secondary, #6c757d); }
     .page-btns { display: flex; gap: 2px; }
     .page-btn {
-      min-width: 28px; height: 28px; padding: 0 6px; font-size: 13px;
-      border: 1px solid var(--ngx-grid-border, #dee2e6); background: var(--ngx-grid-bg, #fff);
-      border-radius: 3px; cursor: pointer; font-family: inherit;
-      color: var(--ngx-grid-text, #212529); transition: background 0.1s;
+      min-width: 28px;
+      height: 28px;
+      padding: 0 6px;
+      font-size: 13px;
+      border: 1px solid var(--ngx-grid-border, #dee2e6);
+      background: var(--ngx-grid-bg, #fff);
+      border-radius: 3px;
+      cursor: pointer;
+      font-family: inherit;
+      color: var(--ngx-grid-text, #212529);
+      transition: background 0.1s;
     }
     .page-btn:hover:not(:disabled) { background: #f1f3f5; }
     .page-btn.active { background: #4a90d9; color: #fff; border-color: #4a90d9; }
     .page-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-  `]
+  `],
 })
 export class DataGridComponent<T extends object = Record<string, unknown>> {
   data = input<T[]>([]);
-  columns = input<GridColumnDef[]>([]);
+  columns = input<GridColumnDef<T>[]>([]);
+
   pageSize = input<number>(10);
+  page = input<number>(1);
+  total = input<number>(0);
+
   selectable = input<boolean>(false);
   striped = input<boolean>(true);
   loading = input<boolean>(false);
+  editable = input<boolean>(false);
+
+  sortMode = input<'client' | 'server'>('client');
+  filterMode = input<'client' | 'server'>('client');
+  groupMode = input<'client' | 'server'>('client');
+  pagingMode = input<'client' | 'server'>('client');
+
+  groupBy = input<GridGroupState | null>(null);
+  groupedData = input<GridGroupResult<T>[]>([]);
+
+  headerTemplate = input<TemplateRef<GridHeaderTemplateContext<T>> | null>(null);
+  cellTemplate = input<TemplateRef<GridCellTemplateContext<T>> | null>(null);
+  rowTemplate = input<TemplateRef<GridRowTemplateContext<T>> | null>(null);
+  detailRowTemplate = input<TemplateRef<GridDetailTemplateContext<T>> | null>(null);
 
   rowClick = output<GridRowClickEvent<T>>();
   selectionChange = output<T[]>();
   sortChange = output<GridSortChangeEvent>();
+  filterChange = output<GridFilterChangeEvent>();
+  groupChange = output<GridGroupChangeEvent>();
   pageChange = output<GridPageChangeEvent>();
+  dataStateChange = output<GridDataStateChangeEvent>();
+  rowUpdate = output<GridRowUpdateEvent<T>>();
 
   sortState = signal<GridSortState | null>(null);
   currentPage = signal(1);
-  selectedRows = signal<Set<T>>(new Set());
+  selectedRows = signal<Set<string>>(new Set());
+  expandedRows = signal<Set<string>>(new Set());
+  collapsedGroups = signal<Set<string>>(new Set());
+  editingRowKey = signal<string | null>(null);
+  editingDraft = signal<Record<string, unknown>>({});
   private filters = signal<Map<string, string>>(new Map());
 
-  readonly Math = Math;
-
-  hasFilterableColumns = computed(() => this.columns().some(c => c.filterable));
-
-  private filteredData = computed(() => {
-    let d = this.data() as T[];
-    const fs = this.filters();
-    fs.forEach((val, field) => {
-      if (val) d = d.filter(row => String((row as Record<string,unknown>)[field] ?? '').toLowerCase().includes(val.toLowerCase()));
+  constructor() {
+    effect(() => {
+      const externalPage = this.page();
+      if (externalPage > 0 && externalPage !== this.currentPage()) {
+        this.currentPage.set(externalPage);
+      }
     });
-    const s = this.sortState();
-    if (s) {
-      d = [...d].sort((a, b) => {
-        const av = (a as Record<string,unknown>)[s.field];
-        const bv = (b as Record<string,unknown>)[s.field];
-        const cmp = av == null ? -1 : bv == null ? 1 : String(av).localeCompare(String(bv), undefined, { numeric: true });
-        return s.dir === 'asc' ? cmp : -cmp;
-      });
+
+    effect(() => {
+      const max = this.totalPages();
+      if (this.currentPage() > max) {
+        this.currentPage.set(max);
+      }
+    });
+  }
+
+  hasFilterableColumns = computed(() => this.columns().some(column => column.filterable));
+  isAnyServerMode = computed(() =>
+    this.sortMode() === 'server' ||
+    this.filterMode() === 'server' ||
+    this.groupMode() === 'server' ||
+    this.pagingMode() === 'server'
+  );
+  showDetailToggle = computed(() => this.detailRowTemplate() !== null);
+
+  activeFilters = computed<GridFilterState[]>(() =>
+    Array.from(this.filters().entries()).map(([field, value]) => ({ field, value, operator: 'contains' }))
+  );
+
+  private clientFilteredData = computed(() => {
+    if (this.filterMode() !== 'client') {
+      return this.data();
     }
-    return d;
+
+    let rows = this.data() as T[];
+    for (const filter of this.activeFilters()) {
+      if (!filter.value) {
+        continue;
+      }
+      const query = filter.value.toLowerCase();
+      rows = rows.filter(row => String((row as Record<string, unknown>)[filter.field] ?? '').toLowerCase().includes(query));
+    }
+    return rows;
   });
 
-  totalFiltered = computed(() => this.filteredData().length);
-  totalPages = computed(() => Math.max(1, Math.ceil(this.totalFiltered() / this.pageSize())));
+  private clientSortedData = computed(() => {
+    const rows = this.clientFilteredData();
+    if (this.sortMode() !== 'client' || !this.sortState()) {
+      return rows;
+    }
 
-  pagedData = computed(() => {
-    const p = this.currentPage();
-    const sz = this.pageSize();
-    return this.filteredData().slice((p - 1) * sz, p * sz);
+    const state = this.sortState()!;
+    return [...rows].sort((left, right) => {
+      const leftValue = (left as Record<string, unknown>)[state.field];
+      const rightValue = (right as Record<string, unknown>)[state.field];
+      const compared = this.compareValues(leftValue, rightValue);
+      return state.dir === 'asc' ? compared : -compared;
+    });
+  });
+
+  private baseFlatData = computed(() => {
+    if (this.sortMode() === 'server' || this.filterMode() === 'server') {
+      return this.data();
+    }
+    return this.clientSortedData();
+  });
+
+  totalItems = computed(() => {
+    if (this.pagingMode() === 'server') {
+      return this.total() > 0 ? this.total() : this.data().length;
+    }
+    return this.baseFlatData().length;
+  });
+
+  totalPages = computed(() => {
+    const pageSize = Math.max(1, this.pageSize());
+    return Math.max(1, Math.ceil(this.totalItems() / pageSize));
+  });
+
+  flatRenderedRows = computed(() => {
+    if (this.hasGrouping()) {
+      return [] as T[];
+    }
+
+    if (this.pagingMode() === 'server') {
+      return this.data();
+    }
+
+    const pageSize = Math.max(1, this.pageSize());
+    const start = (this.currentPage() - 1) * pageSize;
+    return this.baseFlatData().slice(start, start + pageSize);
+  });
+
+  groupedRows = computed(() => {
+    if (!this.hasGrouping()) {
+      return [] as GridGroupResult<T>[];
+    }
+
+    if (this.groupMode() === 'server') {
+      return this.groupedData();
+    }
+
+    const group = this.groupBy();
+    if (!group) {
+      return [];
+    }
+
+    const source = this.pagingMode() === 'server'
+      ? this.data()
+      : this.paginateRows(this.baseFlatData());
+
+    const map = new Map<string, GridGroupResult<T>>();
+    for (const row of source) {
+      const value = (row as Record<string, unknown>)[group.field];
+      const key = String(value ?? '(empty)');
+      const existing = map.get(key);
+      if (existing) {
+        existing.items.push(row);
+        existing.count += 1;
+      } else {
+        map.set(key, { key, value, field: group.field, count: 1, items: [row] });
+      }
+    }
+
+    const groups = Array.from(map.values());
+    groups.sort((a, b) => {
+      const compared = this.compareValues(a.value, b.value);
+      return (group.dir ?? 'asc') === 'asc' ? compared : -compared;
+    });
+
+    return groups;
+  });
+
+  allSelected = computed(() => {
+    const rows = this.visibleSelectionRows();
+    if (rows.length === 0) {
+      return false;
+    }
+    const selected = this.selectedRows();
+    return rows.every(row => selected.has(this.keyOf(row)));
+  });
+
+  someSelected = computed(() => {
+    const rows = this.visibleSelectionRows();
+    const selected = this.selectedRows();
+    return rows.some(row => selected.has(this.keyOf(row)));
+  });
+
+  pagerRangeStart = computed(() => {
+    if (this.totalItems() === 0) {
+      return 0;
+    }
+    return (this.currentPage() - 1) * this.pageSize() + 1;
+  });
+
+  pagerRangeEnd = computed(() => {
+    if (this.totalItems() === 0) {
+      return 0;
+    }
+    return Math.min(this.currentPage() * this.pageSize(), this.totalItems());
   });
 
   pageNumbers = computed(() => {
     const total = this.totalPages();
-    const cur = this.currentPage();
+    const current = this.currentPage();
     const pages: number[] = [];
-    for (let i = Math.max(1, cur - 2); i <= Math.min(total, cur + 2); i++) pages.push(i);
+    const from = Math.max(1, current - 2);
+    const to = Math.min(total, current + 2);
+    for (let page = from; page <= to; page += 1) {
+      pages.push(page);
+    }
     return pages;
   });
 
-  allSelected = computed(() => this.pagedData().length > 0 && this.pagedData().every(r => this.selectedRows().has(r)));
-  someSelected = computed(() => this.pagedData().some(r => this.selectedRows().has(r)));
+  renderColumnCount = computed(() =>
+    this.columns().length +
+    (this.selectable() ? 1 : 0) +
+    (this.showDetailToggle() ? 1 : 0) +
+    (this.editable() ? 1 : 0)
+  );
 
-  getFilter(field: string): string { return this.filters().get(field) ?? ''; }
-  setFilter(field: string, val: string): void {
-    const m = new Map(this.filters());
-    if (val) m.set(field, val); else m.delete(field);
-    this.filters.set(m);
-    this.currentPage.set(1);
+  showPager = computed(() => this.totalItems() > 0);
+
+  getFilter(field: string): string {
+    return this.filters().get(field) ?? '';
   }
 
-  onSort(col: GridColumnDef): void {
-    const s = this.sortState();
-    if (s?.field === col.field) {
-      this.sortState.set(s.dir === 'asc' ? { field: col.field, dir: 'desc' } : null);
+  setFilter(field: string, value: string): void {
+    const nextFilters = new Map(this.filters());
+    if (value) {
+      nextFilters.set(field, value);
     } else {
-      this.sortState.set({ field: col.field, dir: 'asc' });
+      nextFilters.delete(field);
     }
+
+    this.filters.set(nextFilters);
+    this.currentPage.set(1);
+
+    const filters = this.activeFilters();
+    this.filterChange.emit({ filters });
+    this.emitDataState();
+  }
+
+  onSort(column: GridColumnDef<T>): void {
+    const current = this.sortState();
+    if (current?.field === column.field) {
+      this.sortState.set(current.dir === 'asc' ? { field: column.field, dir: 'desc' } : null);
+    } else {
+      this.sortState.set({ field: column.field, dir: 'asc' });
+    }
+
     this.currentPage.set(1);
     this.sortChange.emit({ sort: this.sortState() });
+    this.emitDataState();
   }
 
-  goPage(p: number): void {
-    this.currentPage.set(p);
-    this.pageChange.emit({ page: p, pageSize: this.pageSize() });
+  setGroup(state: GridGroupState | null): void {
+    this.groupChange.emit({ group: state });
+    this.currentPage.set(1);
+    this.emitDataState(state);
   }
 
-  onRowClick(row: T, index: number): void { this.rowClick.emit({ row, index }); }
+  toggleGroup(key: string): void {
+    const next = new Set(this.collapsedGroups());
+    if (next.has(key)) {
+      next.delete(key);
+    } else {
+      next.add(key);
+    }
+    this.collapsedGroups.set(next);
+  }
 
-  isRowSelected(row: T): boolean { return this.selectedRows().has(row); }
+  isGroupCollapsed(key: string): boolean {
+    return this.collapsedGroups().has(key);
+  }
+
+  goPage(page: number): void {
+    const safePage = Math.max(1, Math.min(this.totalPages(), page));
+    this.currentPage.set(safePage);
+    this.pageChange.emit({ page: safePage, pageSize: this.pageSize() });
+    this.emitDataState();
+  }
+
+  onRowClick(row: T, index: number): void {
+    this.rowClick.emit({ row, index });
+  }
+
+  isRowSelected(row: T): boolean {
+    return this.selectedRows().has(this.keyOf(row));
+  }
 
   toggleRow(row: T): void {
-    const s = new Set(this.selectedRows());
-    s.has(row) ? s.delete(row) : s.add(row);
-    this.selectedRows.set(s);
-    this.selectionChange.emit([...s]);
+    const key = this.keyOf(row);
+    const next = new Set(this.selectedRows());
+    if (next.has(key)) {
+      next.delete(key);
+    } else {
+      next.add(key);
+    }
+    this.selectedRows.set(next);
+    this.selectionChange.emit(this.resolveSelectedRows(next));
   }
 
   toggleAll(): void {
-    const cur = this.allSelected();
-    const s = new Set(this.selectedRows());
-    this.pagedData().forEach(r => cur ? s.delete(r) : s.add(r));
-    this.selectedRows.set(s);
-    this.selectionChange.emit([...s]);
+    const next = new Set(this.selectedRows());
+    const rows = this.visibleSelectionRows();
+    if (this.allSelected()) {
+      for (const row of rows) {
+        next.delete(this.keyOf(row));
+      }
+    } else {
+      for (const row of rows) {
+        next.add(this.keyOf(row));
+      }
+    }
+    this.selectedRows.set(next);
+    this.selectionChange.emit(this.resolveSelectedRows(next));
   }
 
-  getCellValue(row: T, field: string): string {
-    const val = (row as Record<string, unknown>)[field];
-    return val == null ? '' : String(val);
+  toggleDetail(row: T): void {
+    const key = this.keyOf(row);
+    const next = new Set(this.expandedRows());
+    if (next.has(key)) {
+      next.delete(key);
+    } else {
+      next.add(key);
+    }
+    this.expandedRows.set(next);
   }
 
-  getKey(row: T, i: number): string {
-    const r = row as Record<string, unknown>;
-    return String(r['id'] ?? r['key'] ?? i);
+  isExpanded(row: T): boolean {
+    return this.expandedRows().has(this.keyOf(row));
+  }
+
+  beginEdit(row: T, _index: number): void {
+    if (!this.editable()) {
+      return;
+    }
+
+    const key = this.keyOf(row);
+    this.editingRowKey.set(key);
+    this.editingDraft.set({ ...(row as Record<string, unknown>) });
+  }
+
+  isEditing(row: T): boolean {
+    return this.editingRowKey() === this.keyOf(row);
+  }
+
+  updateDraft(field: string, value: unknown): void {
+    this.editingDraft.set({ ...this.editingDraft(), [field]: value });
+  }
+
+  getDraftValue(row: T, field: string): unknown {
+    if (!this.isEditing(row)) {
+      return (row as Record<string, unknown>)[field];
+    }
+
+    const draft = this.editingDraft();
+    return Object.prototype.hasOwnProperty.call(draft, field)
+      ? draft[field]
+      : (row as Record<string, unknown>)[field];
+  }
+
+  saveEdit(row: T, index: number): void {
+    const updated = { ...(row as Record<string, unknown>), ...this.editingDraft() } as T;
+    this.rowUpdate.emit({ previous: row, updated, index });
+    this.cancelEdit();
+  }
+
+  cancelEdit(): void {
+    this.editingRowKey.set(null);
+    this.editingDraft.set({});
+  }
+
+  getCellValue(row: T, field: string): unknown {
+    return (row as Record<string, unknown>)[field] ?? '';
+  }
+
+  resolveHeaderTemplate(column: GridColumnDef<T>): TemplateRef<GridHeaderTemplateContext<T>> | null {
+    return column.headerTemplate ?? this.headerTemplate();
+  }
+
+  resolveCellTemplate(column: GridColumnDef<T>): TemplateRef<GridCellTemplateContext<T>> | null {
+    return column.cellTemplate ?? this.cellTemplate();
+  }
+
+  toStringSafe(value: unknown): string {
+    return value == null ? '' : String(value);
+  }
+
+  getKey(row: T, index: number): string {
+    const source = row as Record<string, unknown>;
+    return String(source['id'] ?? source['key'] ?? index);
+  }
+
+  private hasGrouping(): boolean {
+    return this.groupBy() !== null;
+  }
+
+  private paginateRows(rows: T[]): T[] {
+    if (this.pagingMode() === 'server') {
+      return rows;
+    }
+
+    const pageSize = Math.max(1, this.pageSize());
+    const start = (this.currentPage() - 1) * pageSize;
+    return rows.slice(start, start + pageSize);
+  }
+
+  private compareValues(left: unknown, right: unknown): number {
+    if (left == null && right == null) {
+      return 0;
+    }
+    if (left == null) {
+      return -1;
+    }
+    if (right == null) {
+      return 1;
+    }
+
+    if (typeof left === 'number' && typeof right === 'number') {
+      return left - right;
+    }
+
+    return String(left).localeCompare(String(right), undefined, { numeric: true, sensitivity: 'base' });
+  }
+
+  private visibleSelectionRows(): T[] {
+    if (this.groupedRows().length > 0) {
+      const rows: T[] = [];
+      for (const group of this.groupedRows()) {
+        if (!this.isGroupCollapsed(group.key)) {
+          rows.push(...group.items);
+        }
+      }
+      return rows;
+    }
+
+    return this.flatRenderedRows();
+  }
+
+  private resolveSelectedRows(selection: Set<string>): T[] {
+    const source = this.data();
+    return source.filter(row => selection.has(this.keyOf(row)));
+  }
+
+  private keyOf(row: T): string {
+    const source = row as Record<string, unknown>;
+    return String(source['id'] ?? source['key'] ?? JSON.stringify(row));
+  }
+
+  private emitDataState(overrideGroup?: GridGroupState | null): void {
+    this.dataStateChange.emit({
+      page: this.currentPage(),
+      pageSize: this.pageSize(),
+      sort: this.sortState(),
+      filters: this.activeFilters(),
+      group: overrideGroup !== undefined ? overrideGroup : this.groupBy(),
+    });
   }
 }

@@ -1,6 +1,6 @@
-import { Component, signal } from '@angular/core';
+import { Component, computed, signal } from '@angular/core';
 import {
-  TreeViewComponent, ListViewComponent, TreeNode, TreeNodeEvent
+  TreeViewComponent, ListViewComponent, TextBoxComponent, TreeNode, TreeNodeEvent
 } from 'ngx-core-components';
 import { SparklineComponent } from 'ngx-core-components';
 
@@ -10,7 +10,7 @@ interface ApiRow { name: string; type: string; default: string; description: str
 @Component({
   selector: 'app-tree-list-demo',
   standalone: true,
-  imports: [TreeViewComponent, ListViewComponent, SparklineComponent],
+  imports: [TreeViewComponent, ListViewComponent, TextBoxComponent, SparklineComponent],
   template: `
     <div class="demo-page">
 
@@ -19,7 +19,7 @@ interface ApiRow { name: string; type: string; default: string; description: str
         <div class="page-header-text">
           <h1>Tree View & List View</h1>
           <p>TreeView renders hierarchical data with collapsible nodes, icons, and checkboxes.
-             ListView renders a scrollable list with single or multi-selection and custom item templates.</p>
+             ListView renders a scrollable list with search, header slots, single or multi-selection, and custom item templates.</p>
         </div>
         <div class="header-badges">
           <span class="badge badge-teal">Collapsible</span>
@@ -70,7 +70,7 @@ interface ApiRow { name: string; type: string; default: string; description: str
             <!-- List View -->
             <div class="panel">
               <div class="panel-header">
-                <span>ListView — Custom Template</span>
+                <span>ListView — Search + Custom Template</span>
                 <div class="panel-actions">
                   <button class="btn-tiny" (click)="listMultiselect.set(!listMultiselect())">
                     {{ listMultiselect() ? 'Single' : 'Multi' }} Select
@@ -78,11 +78,22 @@ interface ApiRow { name: string; type: string; default: string; description: str
                 </div>
               </div>
               <ngx-list-view
-                [items]="employees"
+                [items]="filteredEmployees()"
                 [selectable]="true"
                 [multiselect]="listMultiselect()"
+                [pageSize]="3"
+                (pageChange)="employeePage.set($event.page)"
                 (selectionChange)="onListSelect($event)"
               >
+                <div listHeader class="list-toolbar">
+                  <ngx-textbox
+                    [value]="employeeSearch()"
+                    label="Search employees"
+                    placeholder="Search by name, email, or department"
+                    (valueChange)="employeeSearch.set($event)"
+                  />
+                  <div class="list-toolbar-meta">Showing {{ filteredEmployees().length }} of {{ employees.length }} · Page {{ employeePage() }}</div>
+                </div>
                 <ng-template #itemTemplate let-item>
                   <div class="employee-item">
                     <div class="emp-avatar">{{ getInitials(item.name) }}</div>
@@ -213,6 +224,8 @@ interface ApiRow { name: string; type: string; default: string; description: str
     .btn-tiny:hover { background: #f1f3f5; }
     .panel-info { padding: 6px 14px; font-size: 12px; color: #6c757d; background: #f8f9fa; border-top: 1px solid #f1f3f5; flex-shrink: 0; font-family: monospace; }
     ngx-tree-view, ngx-list-view { flex: 1; overflow-y: auto; }
+    .list-toolbar { display: flex; flex-direction: column; gap: 10px; padding: 12px 14px; border-bottom: 1px solid #f1f3f5; background: #fafbfc; }
+    .list-toolbar-meta { font-size: 11px; color: #6c757d; }
     .employee-item { display: flex; align-items: center; gap: 12px; }
     .emp-avatar { width: 34px; height: 34px; border-radius: 50%; background: #4a90d9; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; flex-shrink: 0; }
     .emp-info { flex: 1; min-width: 0; }
@@ -238,6 +251,8 @@ export class TreeListDemoComponent {
   tabs = ['Demo', 'How to Use', 'API Reference'];
   checkable = signal(false);
   listMultiselect = signal(false);
+  employeeSearch = signal('');
+  employeePage = signal(1);
   selectedNodeId = signal<string | null>(null);
   checkedIds = signal<string[]>([]);
   selectedEmployees = signal<Employee[]>([]);
@@ -276,6 +291,17 @@ export class TreeListDemoComponent {
     { name: 'Emma Davis', email: 'emma@corp.com', dept: 'Analytics', score: 85, trend: [70,73,77,80,83,85] },
     { name: 'Frank Brown', email: 'frank@corp.com', dept: 'Engineering', score: 72, trend: [88,84,80,76,74,72] },
   ];
+
+  filteredEmployees = computed(() => {
+    const query = this.employeeSearch().trim().toLowerCase();
+    if (!query) {
+      return this.employees;
+    }
+
+    return this.employees.filter(employee =>
+      `${employee.name} ${employee.email} ${employee.dept}`.toLowerCase().includes(query)
+    );
+  });
 
   onNodeSelect(e: TreeNodeEvent): void { this.selectedNodeId.set(e.node.id); }
   onNodeExpand(_e: TreeNodeEvent): void {}
@@ -342,12 +368,17 @@ onCheck(e: { node: TreeNode; checked: boolean }): void {
   imports: [ListViewComponent],
   template: \`
     <ngx-list-view
-      [items]="employees"
+      [items]="filteredEmployees()"
       [selectable]="true"
       [multiselect]="true"
+      [pageSize]="10"
+      (pageChange)="page.set($event.page)"
       (selectionChange)="onSelect($event)"
       (itemClick)="onClick($event)"
     >
+      <div listHeader>
+        <input type="search" (input)="search.set(($event.target as HTMLInputElement).value)" />
+      </div>
       <!-- Custom item template -->
       <ng-template #itemTemplate let-item>
         <div class="my-item">
@@ -362,6 +393,7 @@ onCheck(e: { node: TreeNode; checked: boolean }): void {
   \`
 })
 export class MyComponent {
+  page = signal(1);
   employees = [
     { name: 'Alice', dept: 'Engineering' },
     { name: 'Bob', dept: 'Product' },
@@ -397,14 +429,17 @@ export class MyComponent {
 
   listInputs: ApiRow[] = [
     { name: 'items', type: 'T[]', default: '[]', description: 'The array of items to render in the list.' },
+    { name: 'labelField', type: 'string', default: "'label'", description: 'Field name used for the default text renderer when no custom template is provided.' },
     { name: 'selectable', type: 'boolean', default: 'false', description: 'Enable item selection (highlights on click).' },
     { name: 'multiselect', type: 'boolean', default: 'false', description: 'Allow selecting multiple items simultaneously.' },
     { name: 'loading', type: 'boolean', default: 'false', description: 'Show a loading spinner in place of items.' },
+    { name: 'pageSize', type: 'number', default: '0', description: 'Enables built-in pagination when greater than 0.' },
   ];
 
   listOutputs: ApiRow[] = [
     { name: '(itemClick)', type: 'ListViewItemClickEvent<T>', default: '—', description: 'Fired on any item click. Contains { item, index }.' },
     { name: '(selectionChange)', type: 'ListViewSelectionEvent<T>', default: '—', description: 'Fired when selection changes. Contains { selectedItems }.' },
+    { name: '(pageChange)', type: 'ListViewPageChangeEvent', default: '—', description: 'Fired when the built-in pager changes pages.' },
   ];
 
   cssVars: { name: string; default: string; description: string }[] = [

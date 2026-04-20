@@ -1,15 +1,17 @@
 import { Component, signal } from '@angular/core';
 import {
   BarChartComponent, LineChartComponent, PieChartComponent, SparklineComponent,
+  GanttChartComponent, GanttTask, GanttDependency, GanttConfig, ZoomLevel,
   ChartSeries, ChartDataPoint, CHART_COLORS
 } from 'ngx-core-components';
+import { getSampleTasks, getSampleDependencies } from '../../data/sample-tasks';
 
 interface ApiRow { name: string; type: string; default: string; description: string; }
 
 @Component({
   selector: 'app-charts-demo',
   standalone: true,
-  imports: [BarChartComponent, LineChartComponent, PieChartComponent, SparklineComponent],
+  imports: [BarChartComponent, LineChartComponent, PieChartComponent, SparklineComponent, GanttChartComponent],
   template: `
     <div class="demo-page">
 
@@ -185,6 +187,39 @@ interface ApiRow { name: string; type: string; default: string; description: str
         </div>
       }
 
+      <!-- ===== GANTT ===== -->
+      @if (activeTab() === 'Gantt') {
+        <div class="tab-content">
+          <div class="section-label">Live Demo</div>
+          <div class="chart-card gantt-card">
+            <div class="chart-card-title">Project timeline with dependencies</div>
+            <div class="gantt-toolbar">
+              <button class="mini-btn" [class.active]="ganttZoom() === ZoomLevel.Day" (click)="setGanttZoom(ZoomLevel.Day)">Day</button>
+              <button class="mini-btn" [class.active]="ganttZoom() === ZoomLevel.Week" (click)="setGanttZoom(ZoomLevel.Week)">Week</button>
+              <button class="mini-btn" [class.active]="ganttZoom() === ZoomLevel.Month" (click)="setGanttZoom(ZoomLevel.Month)">Month</button>
+            </div>
+            <div class="gantt-demo-wrap">
+              <ngx-gantt-chart [tasks]="ganttTasks" [dependencies]="ganttDependencies" [config]="ganttConfig()" />
+            </div>
+          </div>
+
+          <div class="section-label">How to Use</div>
+          <pre class="code-block">{{ ganttCode }}</pre>
+
+          <div class="section-label">API Reference — Inputs</div>
+          <div class="api-table-wrap">
+            <table class="api-table">
+              <thead><tr><th>Input</th><th>Type</th><th>Default</th><th>Description</th></tr></thead>
+              <tbody>
+                @for (row of ganttInputs; track row.name) {
+                  <tr><td class="api-name">{{ row.name }}</td><td class="api-type">{{ row.type }}</td><td class="api-default">{{ row.default }}</td><td>{{ row.description }}</td></tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </div>
+      }
+
     </div>
   `,
   styles: [`
@@ -216,6 +251,11 @@ interface ApiRow { name: string; type: string; default: string; description: str
     .chart-card { background: #fff; border: 1px solid #e9ecef; border-radius: 8px; padding: 16px; }
     .chart-card-full { grid-column: 1 / -1; }
     .chart-card-title { font-size: 12px; font-weight: 600; color: #6c757d; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.4px; }
+    .gantt-card { display: flex; flex-direction: column; gap: 12px; }
+    .gantt-toolbar { display: flex; gap: 8px; }
+    .gantt-demo-wrap { height: 360px; border: 1px solid #f1f3f5; border-radius: 8px; overflow: hidden; }
+    .mini-btn { padding: 6px 12px; border: 1px solid #ced4da; border-radius: 999px; background: #fff; color: #495057; font-size: 12px; cursor: pointer; font-family: inherit; }
+    .mini-btn.active { background: #1a73e8; border-color: #1a73e8; color: #fff; }
 
     /* Sparkline table */
     .sparkline-table { display: flex; flex-direction: column; gap: 12px; }
@@ -245,7 +285,8 @@ interface ApiRow { name: string; type: string; default: string; description: str
 })
 export class ChartsDemoComponent {
   activeTab = signal('Bar Chart');
-  tabs = ['Bar Chart', 'Line Chart', 'Pie / Donut', 'Sparkline'];
+  tabs = ['Bar Chart', 'Line Chart', 'Pie / Donut', 'Sparkline', 'Gantt'];
+  ganttZoom = signal(ZoomLevel.Week);
 
   months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];
 
@@ -274,6 +315,23 @@ export class ChartsDemoComponent {
     { name: 'Bounce Rate', data: [48,51,44,47,43,46,42], type: 'bar' as const, color: '#ff6358', up: false, change: 2 },
     { name: 'Avg. Session', data: [2.1,1.9,2.3,2.0,2.4,2.6,2.5], type: 'line' as const, color: '#8e44ad', up: true, change: 5 },
   ];
+
+  ganttTasks: GanttTask[] = getSampleTasks().slice(0, 8).map(task => ({ ...task }));
+  ganttDependencies: GanttDependency[] = getSampleDependencies().filter(dep => {
+    const taskIds = new Set(this.ganttTasks.map(task => task.id));
+    return taskIds.has(dep.fromId) && taskIds.has(dep.toId);
+  });
+  ganttConfig = signal<Partial<GanttConfig>>({
+    zoomLevel: ZoomLevel.Week,
+    rowHeight: 40,
+    columnWidth: 120,
+    headerHeight: 56,
+    sidebarWidth: 320,
+    showTodayMarker: true,
+    showGrid: true,
+    collapsible: true,
+    snapTo: 'day',
+  });
 
   // ===== CODE SNIPPETS =====
   barChartCode = `import { BarChartComponent, ChartSeries } from 'ngx-core-components';
@@ -362,6 +420,24 @@ export class MyComponent {
   trend = [42, 38, 55, 61, 48, 70, 66];
 }`;
 
+  ganttCode = `import { GanttChartComponent, type GanttTask, type GanttDependency } from 'ngx-core-components';
+
+@Component({
+  imports: [GanttChartComponent],
+  template: \
+    \
+    <ngx-gantt-chart
+      [tasks]="tasks"
+      [dependencies]="dependencies"
+      [config]="{ zoomLevel: 'week', rowHeight: 40 }"
+    />
+  \
+})
+export class MyComponent {
+  tasks: GanttTask[] = [...];
+  dependencies: GanttDependency[] = [...];
+}`;
+
   // ===== API TABLES =====
   barInputs: ApiRow[] = [
     { name: 'series', type: 'ChartSeries[]', default: '[]', description: 'Array of data series. Each series has a name and an array of numeric values.' },
@@ -402,6 +478,20 @@ export class MyComponent {
     { name: 'width', type: 'number', default: '100', description: 'Width in pixels.' },
     { name: 'height', type: 'number', default: '32', description: 'Height in pixels.' },
   ];
+
+  ganttInputs: ApiRow[] = [
+    { name: 'tasks', type: 'GanttTask[]', default: 'required', description: 'Task rows rendered in the sidebar and timeline.' },
+    { name: 'dependencies', type: 'GanttDependency[]', default: '[]', description: 'Dependency links between tasks.' },
+    { name: 'config', type: 'Partial<GanttConfig>', default: '{}', description: 'Zoom, sizing, grid, and interaction configuration.' },
+  ];
+
+  protected readonly ZoomLevel = ZoomLevel;
+
+  setGanttZoom(level: ZoomLevel): void {
+    const columnWidth = level === ZoomLevel.Day ? 36 : level === ZoomLevel.Week ? 120 : 180;
+    this.ganttZoom.set(level);
+    this.ganttConfig.set({ ...this.ganttConfig(), zoomLevel: level, columnWidth });
+  }
 
   chartCssVars: { name: string; default: string; description: string }[] = [
     { name: '--ngx-chart-bg', default: '#ffffff', description: 'Chart background color.' },

@@ -1,4 +1,4 @@
-import { Component, input, output, signal } from '@angular/core';
+import { Component, effect, input, output, signal } from '@angular/core';
 
 @Component({
   selector: 'ngx-numeric-textbox',
@@ -11,14 +11,15 @@ import { Component, input, output, signal } from '@angular/core';
         <input
           type="number" class="numeric-input"
           [min]="min()" [max]="max()" [step]="step()"
-          [value]="value()" [disabled]="disabled()" [placeholder]="placeholder()"
+          [value]="currentValue()" [disabled]="disabled()" [placeholder]="placeholder()"
           (focus)="focused.set(true)" (blur)="focused.set(false)"
+          (keydown)="onKeyDown($event)"
           (change)="onChange($event)"
         />
         @if (suffix()) { <span class="numeric-suffix">{{ suffix() }}</span> }
         <div class="numeric-spin">
-          <button class="spin-btn" type="button" [disabled]="disabled() || value() >= max()" (click)="spin(1)">▲</button>
-          <button class="spin-btn" type="button" [disabled]="disabled() || value() <= min()" (click)="spin(-1)">▼</button>
+          <button class="spin-btn" type="button" [disabled]="disabled() || currentValue() >= max()" (click)="spin(1)">▲</button>
+          <button class="spin-btn" type="button" [disabled]="disabled() || currentValue() <= min()" (click)="spin(-1)">▼</button>
         </div>
       </div>
     </div>
@@ -41,10 +42,11 @@ import { Component, input, output, signal } from '@angular/core';
 })
 export class NumericTextBoxComponent {
   label = input('');
+  value = input(0);
   min = input(-Infinity);
   max = input(Infinity);
   step = input(1);
-  value = signal(0);
+  currentValue = signal(0);
   disabled = input(false);
   placeholder = input('');
   prefix = input('');
@@ -52,7 +54,50 @@ export class NumericTextBoxComponent {
   focused = signal(false);
   valueChange = output<number>();
 
-  onChange(e: Event): void { const v = +(e.target as HTMLInputElement).value; this.setValue(v); }
-  spin(dir: 1 | -1): void { this.setValue(this.value() + dir * this.step()); }
-  setValue(v: number): void { const clamped = Math.max(this.min(), Math.min(this.max(), v)); this.value.set(clamped); this.valueChange.emit(clamped); }
+  constructor() {
+    effect(() => {
+      this.currentValue.set(this.clamp(this.value()));
+    });
+  }
+
+  onChange(e: Event): void {
+    const rawValue = (e.target as HTMLInputElement).value;
+    if (rawValue === '') {
+      (e.target as HTMLInputElement).value = String(this.currentValue());
+      return;
+    }
+
+    const nextValue = Number(rawValue);
+    if (Number.isFinite(nextValue)) {
+      this.setValue(nextValue);
+    }
+  }
+
+  onKeyDown(event: KeyboardEvent): void {
+    if (this.disabled()) {
+      return;
+    }
+
+    if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      this.spin(1);
+    }
+
+    if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      this.spin(-1);
+    }
+  }
+
+  spin(dir: 1 | -1): void { this.setValue(this.currentValue() + dir * this.step()); }
+
+  setValue(v: number): void {
+    const clamped = this.clamp(v);
+    this.currentValue.set(clamped);
+    this.valueChange.emit(clamped);
+  }
+
+  private clamp(value: number): number {
+    return Math.max(this.min(), Math.min(this.max(), value));
+  }
 }

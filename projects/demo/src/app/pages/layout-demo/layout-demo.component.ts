@@ -76,9 +76,14 @@ interface ApiRow { name: string; type: string; default: string; description: str
           <div class="section-label">Stepper — Horizontal</div>
           <ngx-stepper [steps]="steps" />
 
+          <div class="section-label">Stepper — Vertical</div>
+          <div style="max-width:360px;padding:20px;border:1px solid #e9ecef;border-radius:8px;background:#fff">
+            <ngx-stepper [steps]="steps" orientation="vertical" />
+          </div>
+
           <div class="section-label">Splitter</div>
           <div style="height:200px;border:1px solid #dee2e6;border-radius:8px;overflow:hidden">
-            <ngx-splitter>
+            <ngx-splitter [size]="splitterSize()" [min]="160" (sizeChange)="splitterSize.set($event)">
               <div pane1 style="padding:16px;background:#f8f9fa;height:100%">
                 <strong>Left Pane</strong>
                 <p style="font-size:13px;color:#6c757d">Drag the divider to resize.</p>
@@ -89,6 +94,7 @@ interface ApiRow { name: string; type: string; default: string; description: str
               </div>
             </ngx-splitter>
           </div>
+          <div style="font-size:12px;color:#6c757d">Current divider size: {{ splitterSize() }}</div>
 
           <div class="section-label">How to Use</div>
           <pre style="margin:0;background:#1e1e1e;color:#d4d4d4;padding:16px;border-radius:8px;font-size:12px;line-height:1.5;overflow:auto">{{ howToCode }}</pre>
@@ -196,6 +202,7 @@ interface ApiRow { name: string; type: string; default: string; description: str
 export class LayoutDemoComponent {
   activeTab = signal('Demo');
   tabs = ['Demo', 'API Reference'];
+  splitterSize = signal('38%');
 
   howToCode = `import { Component } from '@angular/core';
 import { CardComponent, AccordionComponent } from 'ngx-core-components/layout';
@@ -248,14 +255,16 @@ export class ExampleComponent {
   stepperApi: ApiRow[] = [
     { name: 'steps', type: 'StepperStep[]', default: '[]', description: 'Array of stepper steps with labels and states.' },
     { name: 'orientation', type: "'horizontal'|'vertical'", default: "'horizontal'", description: 'Layout direction of steps.' },
-    { name: 'linear', type: 'boolean', default: 'false', description: 'Require steps to be completed in order.' },
+    { name: 'showContent', type: 'boolean', default: 'true', description: 'Controls whether projected content and actions are rendered below the step header.' },
+    { name: 'showActions', type: 'boolean', default: 'true', description: 'Shows the built-in Back and Next actions when content is enabled.' },
     { name: 'stepChange', type: 'Output<number>', default: 'n/a', description: 'Emitted when active step changes.' },
   ];
 
   splitterApi: ApiRow[] = [
-    { name: 'size', type: 'number', default: 'undefined', description: 'Initial divider position in pixels or percentage.' },
-    { name: 'direction', type: "'horizontal'|'vertical'", default: "'horizontal'", description: 'Split direction.' },
-    { name: 'min', type: 'number', default: '0', description: 'Minimum size of first pane.' },
-    { name: 'sizeChange', type: 'Output<number>', default: 'n/a', description: 'Emitted when divider is dragged.' },
+    { name: 'size', type: 'string | number', default: 'null', description: 'Controlled size of the first pane in pixels or percentage.' },
+    { name: 'initialSize', type: 'string | number', default: "'50%'", description: 'Initial size used when the splitter is uncontrolled.' },
+    { name: 'orientation', type: "'horizontal'|'vertical'", default: "'horizontal'", description: 'Split direction.' },
+    { name: 'min', type: 'number', default: '60', description: 'Minimum size of the first pane in pixels.' },
+    { name: 'sizeChange', type: 'Output<string>', default: 'n/a', description: 'Emitted with the current first pane size while the divider is dragged.' },
   ];
 }

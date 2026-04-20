@@ -1,13 +1,45 @@
-import { Component, signal } from '@angular/core';
+import { AfterViewInit, Component, TemplateRef, ViewChild, computed, signal } from '@angular/core';
 import {
-  DataGridComponent, GridColumnDef, GridSortChangeEvent, GridRowClickEvent
+  DataGridComponent,
+  GridCellTemplateContext,
+  GridColumnDef,
+  GridDataStateChangeEvent,
+  GridDetailTemplateContext,
+  GridGroupResult,
+  GridGroupState,
+  GridHeaderTemplateContext,
+  GridRowClickEvent,
+  GridRowTemplateContext,
+  GridRowUpdateEvent,
+  GridSortState,
 } from 'ngx-core-components';
 
-interface Employee {
-  id: number; name: string; title: string; department: string;
-  email: string; salary: number; status: string; startDate: string;
+interface EmployeeProject {
+  code: string;
+  name: string;
+  hours: number;
+  status: 'Planned' | 'In Progress' | 'Completed';
 }
-interface ApiRow { name: string; type: string; default: string; description: string; }
+
+interface Employee {
+  id: number;
+  name: string;
+  title: string;
+  department: string;
+  email: string;
+  salary: number;
+  status: 'Active' | 'On Leave' | 'Inactive';
+  startDate: string;
+  city: string;
+  projects: EmployeeProject[];
+}
+
+interface ApiRow {
+  name: string;
+  type: string;
+  default: string;
+  description: string;
+}
 
 @Component({
   selector: 'app-grid-demo',
@@ -15,51 +47,155 @@ interface ApiRow { name: string; type: string; default: string; description: str
   imports: [DataGridComponent],
   template: `
     <div class="demo-page">
-
-      <!-- Page Header -->
       <div class="page-header">
         <div class="page-header-text">
-          <h1>Data Grid</h1>
-          <p>Full-featured data table with client-side sorting, column filtering, pagination, and row selection.
-             Driven by columnar configuration — no template boilerplate needed.</p>
+          <h1>Data Grid Enterprise</h1>
+          <p>
+            Enterprise-ready grid with client/server filtering, sorting, grouping, inline editing,
+            nested detail rows, plus header, cell, and row templating.
+          </p>
         </div>
         <div class="header-badges">
-          <span class="badge badge-orange">Sort</span>
-          <span class="badge badge-orange">Filter</span>
-          <span class="badge badge-orange">Paginate</span>
-          <span class="badge badge-orange">Select</span>
+          <span class="badge badge-orange">Client/Server</span>
+          <span class="badge badge-orange">Grouping</span>
+          <span class="badge badge-orange">Templates</span>
+          <span class="badge badge-orange">Inline Edit</span>
         </div>
       </div>
 
-      <!-- TAB NAV -->
       <div class="tab-nav">
         @for (tab of tabs; track tab) {
           <button class="tab-btn" [class.active]="activeTab() === tab" (click)="activeTab.set(tab)">{{ tab }}</button>
         }
       </div>
 
-      <!-- ===== DEMO ===== -->
       @if (activeTab() === 'Demo') {
         <div class="tab-content">
           <div class="section-label">Live Demo</div>
-          <div class="demo-toolbar">
-            <button class="btn-outline" (click)="loading.set(!loading())">
-              {{ loading() ? '⏹ Stop Loading' : '⏳ Simulate Loading' }}
-            </button>
-            <span class="selection-info">{{ selectedCount() }} row(s) selected</span>
+
+          <div class="controls-panel">
+            <label class="ctrl-item">
+              Processing
+              <select [value]="processingMode()" (change)="onProcessingModeChange($any($event.target).value)">
+                <option value="client">Client</option>
+                <option value="server">Server (simulated)</option>
+              </select>
+            </label>
+
+            <label class="ctrl-item">
+              Group By
+              <select [value]="groupField()" (change)="onGroupFieldChange($any($event.target).value)">
+                <option value="">None</option>
+                <option value="department">Department</option>
+                <option value="status">Status</option>
+                <option value="city">City</option>
+              </select>
+            </label>
+
+            <label class="ctrl-item toggle-item">
+              <input type="checkbox" [checked]="useRowTemplate()" (change)="useRowTemplate.set($any($event.target).checked)" />
+              Row template mode
+            </label>
+
+            <label class="ctrl-item toggle-item">
+              <input type="checkbox" [checked]="editable()" (change)="editable.set($any($event.target).checked)" />
+              Inline editing
+            </label>
+
+            <label class="ctrl-item">
+              Page Size
+              <select [value]="gridPageSize()" (change)="onPageSizeChange(+$any($event.target).value)">
+                <option [value]="5">5</option>
+                <option [value]="8">8</option>
+                <option [value]="10">10</option>
+                <option [value]="20">20</option>
+              </select>
+            </label>
+
+            <div class="ctrl-item ctrl-summary">Selected rows: {{ selectedCount() }}</div>
           </div>
 
           <ngx-data-grid
-            [data]="employees"
+            [data]="displayRows()"
             [columns]="columns"
-            [pageSize]="8"
+            [page]="gridPage()"
+            [pageSize]="gridPageSize()"
+            [total]="processingMode() === 'server' ? serverTotal() : 0"
             [selectable]="true"
             [striped]="true"
             [loading]="loading()"
+            [editable]="editable()"
+            [sortMode]="processingMode()"
+            [filterMode]="processingMode()"
+            [groupMode]="processingMode()"
+            [pagingMode]="processingMode()"
+            [groupBy]="gridGroup()"
+            [groupedData]="processingMode() === 'server' ? serverGroups() : []"
+            [rowTemplate]="useRowTemplate() ? rowTpl : null"
+            [detailRowTemplate]="detailTpl"
             (rowClick)="onRowClick($event)"
             (selectionChange)="onSelectionChange($event)"
-            (sortChange)="onSortChange($event)"
+            (dataStateChange)="onDataStateChange($event)"
+            (rowUpdate)="onRowUpdate($event)"
           />
+
+          <ng-template #headerTpl let-column="column" let-sort="sort">
+            <div class="header-tpl">
+              <span>{{ column.title }}</span>
+              @if (sort?.field === column.field) {
+                <span class="header-sort">{{ sort.dir === 'asc' ? '▲' : '▼' }}</span>
+              }
+            </div>
+          </ng-template>
+
+          <ng-template #cellTpl let-value let-row="row" let-column="column">
+            @if (column.field === 'salary') {
+              <span class="salary-cell">{{ formatCurrency($any(value)) }}</span>
+            } @else if (column.field === 'status') {
+              <span class="status-pill" [class.active]="value === 'Active'" [class.leave]="value === 'On Leave'" [class.inactive]="value === 'Inactive'">
+                {{ value }}
+              </span>
+            } @else if (column.field === 'name') {
+              <span class="name-cell">{{ value }}<small>{{ row.title }}</small></span>
+            } @else {
+              {{ value }}
+            }
+          </ng-template>
+
+          <ng-template #rowTpl let-row="row" let-editing="editing">
+            <div class="row-template-wrap" [class.editing]="editing">
+              <div class="row-template-main">
+                <strong>{{ row.name }}</strong>
+                <span>{{ row.title }} · {{ row.department }}</span>
+              </div>
+              <div class="row-template-meta">
+                <span>{{ row.city }}</span>
+                <span>{{ formatCurrency(row.salary) }}</span>
+                <span>{{ row.status }}</span>
+              </div>
+            </div>
+          </ng-template>
+
+          <ng-template #detailTpl let-row="row">
+            <div class="detail-card">
+              <div class="detail-title">Nested Row: Project Allocation for {{ row.name }}</div>
+              <table class="detail-table">
+                <thead>
+                  <tr><th>Code</th><th>Project</th><th>Hours</th><th>Status</th></tr>
+                </thead>
+                <tbody>
+                  @for (project of row.projects; track project.code) {
+                    <tr>
+                      <td>{{ project.code }}</td>
+                      <td>{{ project.name }}</td>
+                      <td>{{ project.hours }}</td>
+                      <td>{{ project.status }}</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          </ng-template>
 
           @if (lastEvent()) {
             <div class="event-info">{{ lastEvent() }}</div>
@@ -67,21 +203,16 @@ interface ApiRow { name: string; type: string; default: string; description: str
         </div>
       }
 
-      <!-- ===== HOW TO USE ===== -->
       @if (activeTab() === 'How to Use') {
         <div class="tab-content">
-          <div class="section-label">Basic Grid</div>
-          <pre class="code-block">{{ basicCode }}</pre>
+          <div class="section-label">Client Mode With Grouping, Templates, Inline Edit, Nested Row</div>
+          <pre class="code-block">{{ clientCode }}</pre>
 
-          <div class="section-label">With Sorting, Filtering & Pagination</div>
-          <pre class="code-block">{{ fullCode }}</pre>
-
-          <div class="section-label">GridColumnDef interface</div>
-          <pre class="code-block">{{ colDefCode }}</pre>
+          <div class="section-label">Server Mode (Simulated)</div>
+          <pre class="code-block">{{ serverCode }}</pre>
         </div>
       }
 
-      <!-- ===== API ===== -->
       @if (activeTab() === 'API Reference') {
         <div class="tab-content">
           <div class="section-label">Inputs</div>
@@ -108,40 +239,18 @@ interface ApiRow { name: string; type: string; default: string; description: str
             </table>
           </div>
 
-          <div class="section-label">GridColumnDef Properties</div>
-          <div class="api-table-wrap">
-            <table class="api-table">
-              <thead><tr><th>Property</th><th>Type</th><th>Default</th><th>Description</th></tr></thead>
-              <tbody>
-                @for (row of columnDefProps; track row.name) {
-                  <tr><td class="api-name">{{ row.name }}</td><td class="api-type">{{ row.type }}</td><td class="api-default">{{ row.default }}</td><td>{{ row.description }}</td></tr>
-                }
-              </tbody>
-            </table>
-          </div>
-
-          <div class="section-label">CSS Custom Properties</div>
-          <div class="api-table-wrap">
-            <table class="api-table">
-              <thead><tr><th>Variable</th><th>Default</th><th>Description</th></tr></thead>
-              <tbody>
-                @for (row of gridCssVars; track row.name) {
-                  <tr><td class="api-name">{{ row.name }}</td><td class="api-default">{{ row.default }}</td><td>{{ row.description }}</td></tr>
-                }
-              </tbody>
-            </table>
-          </div>
+          <div class="section-label">Column Definition</div>
+          <pre class="code-block">{{ colDefCode }}</pre>
         </div>
       }
-
     </div>
   `,
   styles: [`
     :host { display: flex; flex-direction: column; height: 100%; overflow-y: auto; }
-    .demo-page { padding: 24px 28px; max-width: 1100px; display: flex; flex-direction: column; gap: 20px; }
+    .demo-page { padding: 24px 28px; max-width: 1200px; display: flex; flex-direction: column; gap: 20px; }
     .page-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; padding-bottom: 16px; border-bottom: 1px solid #e9ecef; }
     .page-header-text h1 { margin: 0 0 6px; font-size: 24px; font-weight: 800; color: #1a1a2e; }
-    .page-header-text p { margin: 0; font-size: 13px; color: #6c757d; line-height: 1.6; max-width: 600px; }
+    .page-header-text p { margin: 0; font-size: 13px; color: #6c757d; line-height: 1.6; max-width: 720px; }
     .header-badges { display: flex; gap: 8px; flex-shrink: 0; flex-wrap: wrap; }
     .badge { font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 12px; }
     .badge-orange { background: #fff3cd; color: #92400e; }
@@ -151,10 +260,30 @@ interface ApiRow { name: string; type: string; default: string; description: str
     .tab-btn.active { color: #1a73e8; border-bottom-color: #1a73e8; font-weight: 600; }
     .tab-content { display: flex; flex-direction: column; gap: 16px; }
     .section-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: #adb5bd; border-bottom: 1px solid #f1f3f5; padding-bottom: 6px; }
-    .demo-toolbar { display: flex; align-items: center; gap: 12px; }
-    .btn-outline { padding: 7px 14px; background: #fff; border: 1px solid #ced4da; border-radius: 4px; font-size: 13px; cursor: pointer; font-family: inherit; }
-    .btn-outline:hover { background: #f1f3f5; }
-    .selection-info { font-size: 13px; color: #6c757d; }
+    .controls-panel { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; padding: 12px; border: 1px solid #e9ecef; border-radius: 8px; background: #fafbfc; }
+    .ctrl-item { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: #495057; }
+    .ctrl-item select { padding: 5px 8px; border: 1px solid #ced4da; border-radius: 4px; font-size: 12px; }
+    .toggle-item { gap: 6px; }
+    .ctrl-summary { padding: 4px 10px; background: #eef3ff; border: 1px solid #dbe6ff; border-radius: 999px; color: #1a73e8; font-weight: 600; }
+    .header-tpl { display: inline-flex; align-items: center; gap: 6px; }
+    .header-sort { font-size: 10px; color: #1a73e8; }
+    .salary-cell { font-weight: 600; color: #0f5132; }
+    .status-pill { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 600; }
+    .status-pill.active { background: #dcfce7; color: #166534; }
+    .status-pill.leave { background: #fff3cd; color: #92400e; }
+    .status-pill.inactive { background: #f8d7da; color: #842029; }
+    .name-cell { display: inline-flex; flex-direction: column; gap: 2px; }
+    .name-cell small { color: #6c757d; font-size: 11px; }
+    .row-template-wrap { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 6px 0; }
+    .row-template-wrap.editing { background: #fff8e1; }
+    .row-template-main { display: flex; flex-direction: column; gap: 3px; }
+    .row-template-main span { font-size: 12px; color: #6c757d; }
+    .row-template-meta { display: flex; gap: 16px; font-size: 12px; color: #495057; }
+    .detail-card { padding: 4px 0; }
+    .detail-title { font-size: 12px; font-weight: 700; color: #495057; margin-bottom: 8px; }
+    .detail-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    .detail-table th, .detail-table td { text-align: left; padding: 6px 8px; border-bottom: 1px solid #eceff1; }
+    .detail-table th { color: #6c757d; font-size: 11px; text-transform: uppercase; }
     .event-info { padding: 8px 14px; background: #e8f0fe; border-radius: 6px; font-size: 12px; font-family: monospace; color: #1a73e8; }
     .code-block { background: #1e1e1e; color: #d4d4d4; padding: 20px; border-radius: 8px; font-size: 12px; font-family: 'Cascadia Code', Consolas, monospace; overflow-x: auto; white-space: pre; margin: 0; }
     .api-table-wrap { overflow-x: auto; border: 1px solid #e9ecef; border-radius: 8px; }
@@ -167,157 +296,352 @@ interface ApiRow { name: string; type: string; default: string; description: str
     .api-name { color: #1a73e8 !important; font-family: monospace; font-weight: 600; white-space: nowrap; }
     .api-type { color: #8e44ad !important; font-family: monospace; white-space: nowrap; }
     .api-default { font-family: monospace; white-space: nowrap; }
-  `]
+  `],
 })
-export class GridDemoComponent {
+export class GridDemoComponent implements AfterViewInit {
+  @ViewChild('headerTpl', { static: true }) private headerTplRef?: TemplateRef<GridHeaderTemplateContext<Employee>>;
+  @ViewChild('cellTpl', { static: true }) private cellTplRef?: TemplateRef<GridCellTemplateContext<Employee>>;
+
   activeTab = signal('Demo');
   tabs = ['Demo', 'How to Use', 'API Reference'];
+
+  processingMode = signal<'client' | 'server'>('client');
+  groupField = signal('');
+  useRowTemplate = signal(false);
+  editable = signal(true);
   loading = signal(false);
+  gridPage = signal(1);
+  gridPageSize = signal(8);
   selectedCount = signal(0);
   lastEvent = signal('');
 
-  columns: GridColumnDef[] = [
-    { field: 'id', title: '#', width: 50, sortable: true },
-    { field: 'name', title: 'Name', sortable: true, filterable: true, width: 160 },
-    { field: 'title', title: 'Title', sortable: true, filterable: true, width: 180 },
-    { field: 'department', title: 'Department', sortable: true, filterable: true, width: 140 },
-    { field: 'email', title: 'Email', filterable: true, width: 200 },
-    { field: 'salary', title: 'Salary', sortable: true, width: 100, align: 'right' },
-    { field: 'status', title: 'Status', sortable: true, filterable: true, width: 100 },
+  employees = signal<Employee[]>(this.seedEmployees());
+  serverRows = signal<Employee[]>([]);
+  serverGroups = signal<GridGroupResult<Employee>[]>([]);
+  serverTotal = signal(0);
+
+  serverSort = signal<GridSortState | null>(null);
+  serverFilters = signal<{ field: string; value: string }[]>([]);
+
+  columns: GridColumnDef<Employee>[] = [
+    { field: 'id', title: '#', width: 56, sortable: true, align: 'right' },
+    { field: 'name', title: 'Name', sortable: true, filterable: true, groupable: true, editable: true, width: 190 },
+    { field: 'title', title: 'Title', sortable: true, filterable: true, groupable: true, editable: true, width: 170 },
+    { field: 'department', title: 'Department', sortable: true, filterable: true, groupable: true, editable: true, width: 140 },
+    { field: 'city', title: 'City', sortable: true, filterable: true, groupable: true, editable: true, width: 120 },
+    { field: 'email', title: 'Email', filterable: true, editable: true, width: 220 },
+    { field: 'salary', title: 'Salary', sortable: true, align: 'right', editable: true, width: 120 },
+    { field: 'status', title: 'Status', sortable: true, filterable: true, groupable: true, editable: true, width: 110 },
     { field: 'startDate', title: 'Start Date', sortable: true, width: 120 },
   ];
 
-  employees: Employee[] = [
-    { id: 1, name: 'Alice Johnson', title: 'Software Engineer', department: 'Engineering', email: 'alice@corp.com', salary: 95000, status: 'Active', startDate: '2021-03-15' },
-    { id: 2, name: 'Bob Martinez', title: 'Product Manager', department: 'Product', email: 'bob@corp.com', salary: 110000, status: 'Active', startDate: '2020-07-01' },
-    { id: 3, name: 'Carol Williams', title: 'UX Designer', department: 'Design', email: 'carol@corp.com', salary: 88000, status: 'Active', startDate: '2022-01-10' },
-    { id: 4, name: 'David Kim', title: 'DevOps Engineer', department: 'Engineering', email: 'david@corp.com', salary: 98000, status: 'Active', startDate: '2021-09-20' },
-    { id: 5, name: 'Emma Davis', title: 'Data Analyst', department: 'Analytics', email: 'emma@corp.com', salary: 82000, status: 'Active', startDate: '2022-05-18' },
-    { id: 6, name: 'Frank Brown', title: 'Backend Developer', department: 'Engineering', email: 'frank@corp.com', salary: 92000, status: 'On Leave', startDate: '2019-11-05' },
-    { id: 7, name: 'Grace Lee', title: 'QA Engineer', department: 'Engineering', email: 'grace@corp.com', salary: 78000, status: 'Active', startDate: '2023-02-28' },
-    { id: 8, name: 'Henry Wilson', title: 'Tech Lead', department: 'Engineering', email: 'henry@corp.com', salary: 125000, status: 'Active', startDate: '2018-06-15' },
-    { id: 9, name: 'Iris Chen', title: 'Marketing Manager', department: 'Marketing', email: 'iris@corp.com', salary: 89000, status: 'Active', startDate: '2020-03-01' },
-    { id: 10, name: 'Jack Taylor', title: 'Sales Director', department: 'Sales', email: 'jack@corp.com', salary: 115000, status: 'Active', startDate: '2017-08-22' },
-    { id: 11, name: 'Karen White', title: 'HR Manager', department: 'HR', email: 'karen@corp.com', salary: 85000, status: 'Active', startDate: '2021-06-10' },
-    { id: 12, name: 'Liam Harris', title: 'Frontend Developer', department: 'Engineering', email: 'liam@corp.com', salary: 89000, status: 'Active', startDate: '2022-09-01' },
-    { id: 13, name: 'Maya Robinson', title: 'Data Scientist', department: 'Analytics', email: 'maya@corp.com', salary: 108000, status: 'Active', startDate: '2020-12-15' },
-    { id: 14, name: 'Noah Clark', title: 'Security Engineer', department: 'Engineering', email: 'noah@corp.com', salary: 102000, status: 'Inactive', startDate: '2019-04-08' },
-    { id: 15, name: 'Olivia Lewis', title: 'Project Manager', department: 'Product', email: 'olivia@corp.com', salary: 97000, status: 'Active', startDate: '2021-01-20' },
-  ];
+  gridGroup = computed<GridGroupState | null>(() => {
+    const field = this.groupField();
+    return field ? { field, dir: 'asc' } : null;
+  });
 
-  onRowClick(e: GridRowClickEvent<Employee>): void {
-    this.lastEvent.set(`Row clicked: ${e.row.name} (${e.row.title})`);
+  displayRows = computed(() =>
+    this.processingMode() === 'server' ? this.serverRows() : this.employees()
+  );
+
+  constructor() {
+    this.refreshServerData({
+      page: 1,
+      pageSize: this.gridPageSize(),
+      sort: null,
+      filters: [],
+      group: null,
+    });
   }
+
+  ngAfterViewInit(): void {
+    if (!this.headerTplRef || !this.cellTplRef) {
+      return;
+    }
+
+    const cellTemplateFields = new Set(['name', 'salary', 'status']);
+    this.columns = this.columns.map(column => ({
+      ...column,
+      headerTemplate: this.headerTplRef,
+      cellTemplate: cellTemplateFields.has(column.field) ? this.cellTplRef : undefined,
+    }));
+  }
+
+  formatCurrency(value: number): string {
+    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(value || 0);
+  }
+
+  onProcessingModeChange(value: 'client' | 'server'): void {
+    this.processingMode.set(value);
+    this.gridPage.set(1);
+    if (value === 'server') {
+      this.refreshServerData({
+        page: 1,
+        pageSize: this.gridPageSize(),
+        sort: this.serverSort(),
+        filters: this.serverFilters().map(filter => ({ ...filter, operator: 'contains' })),
+        group: this.gridGroup(),
+      });
+      this.lastEvent.set('Server mode enabled (simulated requests)');
+    } else {
+      this.lastEvent.set('Client mode enabled');
+    }
+  }
+
+  onGroupFieldChange(field: string): void {
+    this.groupField.set(field);
+    this.gridPage.set(1);
+    if (this.processingMode() === 'server') {
+      this.refreshServerData({
+        page: 1,
+        pageSize: this.gridPageSize(),
+        sort: this.serverSort(),
+        filters: this.serverFilters().map(filter => ({ ...filter, operator: 'contains' })),
+        group: field ? { field, dir: 'asc' } : null,
+      });
+    }
+  }
+
+  onPageSizeChange(size: number): void {
+    this.gridPageSize.set(size);
+    this.gridPage.set(1);
+
+    if (this.processingMode() === 'server') {
+      this.refreshServerData({
+        page: 1,
+        pageSize: size,
+        sort: this.serverSort(),
+        filters: this.serverFilters().map(filter => ({ ...filter, operator: 'contains' })),
+        group: this.gridGroup(),
+      });
+    }
+
+    this.lastEvent.set(`Page size changed to ${size}`);
+  }
+
+  onRowClick(event: GridRowClickEvent<Employee>): void {
+    this.lastEvent.set(`Row clicked: ${event.row.name} (${event.row.department})`);
+  }
+
   onSelectionChange(rows: Employee[]): void {
     this.selectedCount.set(rows.length);
-    this.lastEvent.set(`Selection: ${rows.map(r => r.name).join(', ') || 'none'}`);
-  }
-  onSortChange(e: GridSortChangeEvent): void {
-    this.lastEvent.set(e.sort ? `Sorted by "${e.sort.field}" (${e.sort.dir})` : 'Sort cleared');
+    this.lastEvent.set(`${rows.length} row(s) selected`);
   }
 
-  basicCode = `import { DataGridComponent, GridColumnDef } from 'ngx-core-components';
+  onDataStateChange(state: GridDataStateChangeEvent): void {
+    this.gridPage.set(state.page);
+    this.gridPageSize.set(state.pageSize);
+    if (this.processingMode() === 'server') {
+      this.refreshServerData(state);
+      const filterInfo = state.filters.length ? `${state.filters.length} filter(s)` : 'no filters';
+      const sortInfo = state.sort ? `${state.sort.field} ${state.sort.dir}` : 'no sort';
+      const groupInfo = state.group ? `grouped by ${state.group.field}` : 'no grouping';
+      this.lastEvent.set(`Server request: page ${state.page}, ${sortInfo}, ${filterInfo}, ${groupInfo}`);
+    } else {
+      const sortInfo = state.sort ? `${state.sort.field} ${state.sort.dir}` : 'none';
+      this.lastEvent.set(`Client state changed: page ${state.page}, sort ${sortInfo}`);
+    }
+  }
+
+  onRowUpdate(event: GridRowUpdateEvent<Employee>): void {
+    const update = (rows: Employee[]): Employee[] =>
+      rows.map(row => row.id === event.previous.id ? { ...row, ...event.updated } : row);
+
+    this.employees.set(update(this.employees()));
+    this.serverRows.set(update(this.serverRows()));
+    this.lastEvent.set(`Inline edit saved for ${event.updated.name}`);
+  }
+
+  private refreshServerData(state: GridDataStateChangeEvent): void {
+    let rows = [...this.employees()];
+
+    for (const filter of state.filters) {
+      if (!filter.value) {
+        continue;
+      }
+      const query = filter.value.toLowerCase();
+      rows = rows.filter(row => String(((row as unknown) as Record<string, unknown>)[filter.field] ?? '').toLowerCase().includes(query));
+    }
+
+    if (state.sort) {
+      rows.sort((left, right) => {
+        const l = ((left as unknown) as Record<string, unknown>)[state.sort!.field];
+        const r = ((right as unknown) as Record<string, unknown>)[state.sort!.field];
+        const compared = String(l ?? '').localeCompare(String(r ?? ''), undefined, { numeric: true, sensitivity: 'base' });
+        return state.sort!.dir === 'asc' ? compared : -compared;
+      });
+    }
+
+    this.serverFilters.set(
+      state.filters.map((filter: { field: string; value: string }) => ({
+        field: filter.field,
+        value: filter.value,
+      }))
+    );
+    this.serverSort.set(state.sort);
+
+    this.serverTotal.set(rows.length);
+
+    if (state.group) {
+      const grouped = new Map<string, Employee[]>();
+      for (const row of rows) {
+        const key = String(((row as unknown) as Record<string, unknown>)[state.group.field] ?? '(empty)');
+        if (!grouped.has(key)) {
+          grouped.set(key, []);
+        }
+        grouped.get(key)!.push(row);
+      }
+
+      const pageSize = Math.max(1, state.pageSize);
+      const groupedResults = Array.from(grouped.entries()).map(([key, items]) => ({
+        key,
+        value: key,
+        field: state.group!.field,
+        count: items.length,
+        items: items.slice((state.page - 1) * pageSize, state.page * pageSize),
+      }));
+
+      this.serverGroups.set(groupedResults);
+      this.serverRows.set([]);
+      return;
+    }
+
+    this.serverGroups.set([]);
+    const pageSize = Math.max(1, state.pageSize);
+    const start = (state.page - 1) * pageSize;
+    this.serverRows.set(rows.slice(start, start + pageSize));
+  }
+
+  private seedEmployees(): Employee[] {
+    const departments = ['Engineering', 'Product', 'Design', 'Marketing', 'Sales', 'Analytics'];
+    const cities = ['New York', 'Berlin', 'Bangalore', 'London', 'Toronto'];
+    const statuses: Array<Employee['status']> = ['Active', 'On Leave', 'Inactive'];
+    const titles = ['Software Engineer', 'Senior Engineer', 'Tech Lead', 'Product Manager', 'UX Designer', 'Data Analyst'];
+
+    return Array.from({ length: 48 }, (_, i) => {
+      const id = i + 1;
+      const department = departments[i % departments.length];
+      const city = cities[i % cities.length];
+      const status = statuses[i % statuses.length];
+      const title = titles[i % titles.length];
+      return {
+        id,
+        name: `Employee ${id}`,
+        title,
+        department,
+        email: `employee${id}@corp.com`,
+        salary: 68000 + (i % 12) * 6200,
+        status,
+        startDate: `202${i % 5}-0${(i % 9) + 1}-1${i % 9}`,
+        city,
+        projects: [
+          { code: `P-${id}-A`, name: `Platform Revamp ${id}`, hours: 20 + (i % 10), status: 'In Progress' },
+          { code: `P-${id}-B`, name: `Quality Sprint ${id}`, hours: 12 + (i % 7), status: i % 2 === 0 ? 'Planned' : 'Completed' },
+        ],
+      };
+    });
+  }
+
+  clientCode = `import { DataGridComponent, type GridColumnDef } from 'ngx-core-components';
 
 @Component({
+  standalone: true,
   imports: [DataGridComponent],
-  template: \`
+  template: \
+    \
     <ngx-data-grid
       [data]="rows"
       [columns]="columns"
+      [pageSize]="10"
+      [groupBy]="{ field: 'department', dir: 'asc' }"
+      [editable]="true"
+      [rowTemplate]="cardMode ? rowTpl : null"
+      [detailRowTemplate]="detailTpl"
+      (rowUpdate)="onRowUpdate($event)"
     />
-  \`
 })
 export class MyComponent {
   columns: GridColumnDef[] = [
-    { field: 'name', title: 'Name' },
-    { field: 'email', title: 'Email' },
+    { field: 'name', title: 'Name', sortable: true, filterable: true, editable: true, headerTemplate: headerTpl, cellTemplate: cellTpl },
+    { field: 'department', title: 'Department', sortable: true, filterable: true, groupable: true, headerTemplate: headerTpl },
   ];
-  rows = [
-    { name: 'Alice', email: 'alice@example.com' },
-    { name: 'Bob', email: 'bob@example.com' },
-  ];
+
+  rows = [...];
 }`;
 
-  fullCode = `import {
-  DataGridComponent, GridColumnDef,
-  GridSortChangeEvent, GridRowClickEvent
-} from 'ngx-core-components';
+  serverCode = `import { DataGridComponent, type GridDataStateChangeEvent } from 'ngx-core-components';
 
 @Component({
+  standalone: true,
   imports: [DataGridComponent],
-  template: \`
+  template: \
+    \
     <ngx-data-grid
-      [data]="employees"
+      [data]="pageRows"
       [columns]="columns"
-      [pageSize]="10"
-      [selectable]="true"
-      [striped]="true"
-      [loading]="isLoading"
-      (rowClick)="onRowClick($event)"
-      (selectionChange)="onSelect($event)"
-      (sortChange)="onSort($event)"
-      (pageChange)="onPage($event)"
+      [page]="page"
+      [pageSize]="20"
+      [total]="total"
+      [sortMode]="'server'"
+      [filterMode]="'server'"
+      [groupMode]="'server'"
+      [pagingMode]="'server'"
+      [groupBy]="group"
+      [groupedData]="serverGroups"
+      (dataStateChange)="onDataStateChange($event)"
     />
-  \`
 })
-export class MyComponent {
-  isLoading = false;
+export class MyServerGridComponent {
+  pageRows = [];
+  total = 0;
+  group: { field: string; dir?: 'asc' | 'desc' } | null = null;
+  serverGroups = [];
 
-  columns: GridColumnDef[] = [
-    { field: 'id', title: '#', width: 60, sortable: true },
-    { field: 'name', title: 'Name', sortable: true, filterable: true, width: 160 },
-    { field: 'email', title: 'Email', filterable: true },
-    { field: 'salary', title: 'Salary', sortable: true, align: 'right' },
-    { field: 'status', title: 'Status', sortable: true, filterable: true },
-  ];
-
-  employees = [...]; // your data array
-
-  onRowClick(e: GridRowClickEvent<YourType>): void { /* ... */ }
-  onSelect(rows: YourType[]): void { /* ... */ }
-  onSort(e: GridSortChangeEvent): void { /* ... */ }
-  onPage(e: GridPageChangeEvent): void { /* ... */ }
+  onDataStateChange(state: GridDataStateChangeEvent): void {
+    // call your API with page, pageSize, filters, sort, group
+  }
 }`;
 
   colDefCode = `interface GridColumnDef {
-  field: string;          // Property name in your data object
-  title: string;          // Column header display text
-  width?: number;         // Column width in pixels
-  sortable?: boolean;     // Enable click-to-sort on this column
-  filterable?: boolean;   // Show a filter input below the header
-  align?: 'left' | 'center' | 'right';  // Cell text alignment
+  field: string;
+  title: string;
+  width?: number;
+  sortable?: boolean;
+  filterable?: boolean;
+  groupable?: boolean;
+  editable?: boolean;
+  align?: 'left' | 'center' | 'right';
+  headerTemplate?: TemplateRef<GridHeaderTemplateContext<T>>;
+  cellTemplate?: TemplateRef<GridCellTemplateContext<T>>;
 }`;
 
   gridInputs: ApiRow[] = [
-    { name: 'data', type: 'T[]', default: '[]', description: 'The data array to display. Can be any object type.' },
-    { name: 'columns', type: 'GridColumnDef[]', default: '[]', description: 'Column definitions — controls which fields to show and how.' },
-    { name: 'pageSize', type: 'number', default: '10', description: 'Number of rows per page.' },
-    { name: 'selectable', type: 'boolean', default: 'false', description: 'Enable row checkboxes for selection.' },
-    { name: 'striped', type: 'boolean', default: 'false', description: 'Alternate row backgrounds for readability.' },
-    { name: 'loading', type: 'boolean', default: 'false', description: 'Show a loading overlay over the grid.' },
+    { name: 'data', type: 'T[]', default: '[]', description: 'Rows to render. In server paging mode, pass current page rows.' },
+    { name: 'columns', type: 'GridColumnDef[]', default: '[]', description: 'Column metadata including sorting/filter/edit flags.' },
+    { name: 'page', type: 'number', default: '1', description: 'Controlled current page.' },
+    { name: 'pageSize', type: 'number', default: '10', description: 'Rows per page.' },
+    { name: 'total', type: 'number', default: '0', description: 'Total row count used in server paging mode.' },
+    { name: 'sortMode', type: "'client' | 'server'", default: "'client'", description: 'Sort on the client or delegate to server.' },
+    { name: 'filterMode', type: "'client' | 'server'", default: "'client'", description: 'Filter on the client or delegate to server.' },
+    { name: 'groupMode', type: "'client' | 'server'", default: "'client'", description: 'Group on the client or use server groupedData.' },
+    { name: 'pagingMode', type: "'client' | 'server'", default: "'client'", description: 'Page on the client or delegate to server.' },
+    { name: 'groupBy', type: 'GridGroupState | null', default: 'null', description: 'Grouping descriptor (single-level grouping).' },
+    { name: 'groupedData', type: 'GridGroupResult<T>[]', default: '[]', description: 'Server-provided grouped payload when groupMode is server.' },
+    { name: 'headerTemplate', type: 'TemplateRef<GridHeaderTemplateContext<T>> | null', default: 'null', description: 'Custom header template.' },
+    { name: 'cellTemplate', type: 'TemplateRef<GridCellTemplateContext<T>> | null', default: 'null', description: 'Custom cell template.' },
+    { name: 'rowTemplate', type: 'TemplateRef<GridRowTemplateContext<T>> | null', default: 'null', description: 'Custom row template.' },
+    { name: 'detailRowTemplate', type: 'TemplateRef<GridDetailTemplateContext<T>> | null', default: 'null', description: 'Nested/detail row template.' },
+    { name: 'editable', type: 'boolean', default: 'false', description: 'Enables inline row editing controls.' },
   ];
 
   gridOutputs: ApiRow[] = [
-    { name: '(rowClick)', type: 'GridRowClickEvent<T>', default: '—', description: 'Fires when a row is clicked. Contains { row, index }.' },
-    { name: '(selectionChange)', type: 'T[]', default: '—', description: 'Fires when checkbox selection changes. Contains all selected rows.' },
-    { name: '(sortChange)', type: 'GridSortChangeEvent', default: '—', description: 'Fires when the sort state changes. Contains { sort: { field, dir } | null }.' },
-    { name: '(pageChange)', type: 'GridPageChangeEvent', default: '—', description: 'Fires when the page changes. Contains { page, pageSize }.' },
-  ];
-
-  columnDefProps: ApiRow[] = [
-    { name: 'field', type: 'string', default: '—', description: 'Required. Key of the property in the data object to render.' },
-    { name: 'title', type: 'string', default: '—', description: 'Required. Column header text shown to the user.' },
-    { name: 'width', type: 'number', default: 'auto', description: 'Column width in pixels. If omitted, the column grows to fill available space.' },
-    { name: 'sortable', type: 'boolean', default: 'false', description: 'Makes the header clickable for ascending/descending sort.' },
-    { name: 'filterable', type: 'boolean', default: 'false', description: 'Renders a text filter input below the column header.' },
-    { name: 'align', type: "'left' | 'center' | 'right'", default: "'left'", description: 'Text alignment of cell content.' },
-  ];
-
-  gridCssVars: { name: string; default: string; description: string }[] = [
-    { name: '--ngx-grid-header-bg', default: '#f8f9fa', description: 'Table header background.' },
-    { name: '--ngx-grid-border', default: '#dee2e6', description: 'Border color for header and cells.' },
-    { name: '--ngx-grid-hover-bg', default: '#f1f3f5', description: 'Row hover background color.' },
-    { name: '--ngx-grid-selected-bg', default: '#e8f0fe', description: 'Selected row background.' },
-    { name: '--ngx-grid-stripe-bg', default: '#f8f9fa', description: 'Alternate row background in striped mode.' },
+    { name: '(dataStateChange)', type: 'GridDataStateChangeEvent', default: '—', description: 'Unified event for server operations: page, sort, filters, group.' },
+    { name: '(sortChange)', type: 'GridSortChangeEvent', default: '—', description: 'Sort state changed.' },
+    { name: '(filterChange)', type: 'GridFilterChangeEvent', default: '—', description: 'Filter descriptors changed.' },
+    { name: '(groupChange)', type: 'GridGroupChangeEvent', default: '—', description: 'Grouping descriptor changed.' },
+    { name: '(pageChange)', type: 'GridPageChangeEvent', default: '—', description: 'Page changed.' },
+    { name: '(rowClick)', type: 'GridRowClickEvent<T>', default: '—', description: 'Row clicked.' },
+    { name: '(selectionChange)', type: 'T[]', default: '—', description: 'Selected rows changed.' },
+    { name: '(rowUpdate)', type: 'GridRowUpdateEvent<T>', default: '—', description: 'Inline edit saved with previous and updated rows.' },
   ];
 }

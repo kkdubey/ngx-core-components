@@ -83,6 +83,60 @@ export class MyComponent {
 }
 ```
 
+### Structured Inputs And Layout
+
+```typescript
+import { Component, signal } from '@angular/core';
+import { NumericTextBoxComponent, TimePickerComponent } from 'ngx-core-components/inputs';
+import { SplitterComponent } from 'ngx-core-components/layout';
+
+@Component({
+  standalone: true,
+  imports: [NumericTextBoxComponent, TimePickerComponent, SplitterComponent],
+  template: `
+    <ngx-numeric-textbox [value]="quantity()" [min]="0" [max]="10" (valueChange)="quantity.set($event)" />
+    <ngx-time-picker [value]="meetingTime()" [use12h]="true" (timeChange)="meetingTime.set($event)" />
+
+    <div style="height: 240px; border: 1px solid #e9ecef; overflow: hidden;">
+      <ngx-splitter [size]="paneSize()" [min]="160" (sizeChange)="paneSize.set($event)">
+        <div pane1>Navigation</div>
+        <div pane2>Content</div>
+      </ngx-splitter>
+    </div>
+  `,
+})
+export class MyComponent {
+  quantity = signal(2);
+  meetingTime = signal('14:30');
+  paneSize = signal('35%');
+}
+```
+
+`NumericTextBoxComponent` supports controlled values and keyboard stepping. `TimePickerComponent` accepts typed values like `14:30` or `2:30 PM` and emits normalized `HH:mm` output.
+
+### List View Pagination
+
+```typescript
+import { Component, signal } from '@angular/core';
+import { ListViewComponent } from 'ngx-core-components/views';
+
+@Component({
+  standalone: true,
+  imports: [ListViewComponent],
+  template: `
+    <ngx-list-view
+      [items]="people"
+      [pageSize]="5"
+      (pageChange)="page.set($event.page)"
+    />
+  `,
+})
+export class MyListComponent {
+  page = signal(1);
+  people = Array.from({ length: 20 }, (_, index) => ({ name: `Person ${index + 1}` }));
+}
+```
+
 ## Theming
 
 All components expose CSS custom properties. Example for the Gantt chart:

@@ -11,4 +11,5 @@ export { ListViewComponent } from './list-view/list-view.component';
 export type {
   ListViewItemClickEvent,
   ListViewSelectionEvent,
+  ListViewPageChangeEvent,
 } from './list-view/list-view.component';
