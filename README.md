@@ -47,7 +47,7 @@ import { GanttChartComponent, GanttTask } from 'ngx-core-components/charts';
 })
 export class MyComponent {
   tasks: GanttTask[] = [
-    { id: '1', name: 'Design',      start: new Date('2026-04-01'), end: new Date('2026-04-05'), progress: 100, parentId: null, collapsed: false, isMilestone: false },
+    { id: '1', name: 'Design', start: new Date('2026-04-01'), end: new Date('2026-04-05'), progress: 100, parentId: null, collapsed: false, isMilestone: false },
     { id: '2', name: 'Development', start: new Date('2026-04-06'), end: new Date('2026-04-15'), progress: 40,  parentId: null, collapsed: false, isMilestone: false },
   ];
 }
